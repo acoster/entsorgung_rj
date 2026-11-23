@@ -12,12 +12,15 @@ Caching strategy (minimises upstream requests):
   identity is registered exactly once.
 * **Regions list** (`regions`): cached for `regions_ttl` seconds and used to
   validate district IDs without touching the backend.
-* **Rendered calendar** (`ics:<id>`): considered fresh for `calendar_ttl` seconds.
-  Stale copies are kept for `stale_ttl` seconds and served if a refresh fails.
+* **Schedule** (`schedule:<id>`): the district's raw collection items, considered
+  fresh for `calendar_ttl` seconds. Stale copies are kept for `stale_ttl` seconds
+  and served if a refresh fails. The `.ics` is rendered per request from this
+  entry, so every category filter shares one cache entry and one upstream fetch.
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import time
 from dataclasses import dataclass
@@ -25,10 +28,16 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from entsorgung_rj.client import BASE_URL, AsyncEntsorgungClient
 from entsorgung_rj.ical import format_ics
-from entsorgung_rj.models import ApiError, ClientIdentity, generate_identity
+from entsorgung_rj.models import (
+    ApiError,
+    ClientIdentity,
+    WasteCategory,
+    filter_by_categories,
+    generate_identity,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
 
     from entsorgung_rj.transport import AsyncTransport
 
@@ -37,7 +46,7 @@ DEFAULT_REGIONS_TTL = 24 * 60 * 60  # 1 day
 DEFAULT_STALE_TTL = 7 * 24 * 60 * 60  # 7 days
 
 _IDENTITY_KEY = "identity:{}"
-_CALENDAR_KEY = "ics:{}"
+_SCHEDULE_KEY = "schedule:{}"
 _REGIONS_KEY = "regions"
 
 
@@ -88,29 +97,40 @@ class DistrictCalendarService:
         self.stale_ttl = max(stale_ttl, calendar_ttl)
         self._clock = clock
 
-    async def get_calendar(self, district_id: int) -> CalendarResult:
+    async def get_calendar(
+        self,
+        district_id: int,
+        categories: Iterable[WasteCategory | int] | None = None,
+    ) -> CalendarResult:
         """Return the district's calendar, refreshing it from upstream if stale.
 
+        Only events in `categories` are included; empty or `None` means all.
         Raises `DistrictNotFoundError` for unknown districts and `ApiError`
         when upstream fails and no cached copy is available.
         """
-        cached = await self._load_json(_CALENDAR_KEY.format(district_id))
-        now = self._clock()
-        if cached and now - float(cached["fetched_at"]) < self.calendar_ttl:
-            return CalendarResult(ics=cached["ics"], fetched_at=cached["fetched_at"])
+        cached = _valid_schedule(
+            await self._load_json(_SCHEDULE_KEY.format(district_id)),
+        )
+        stale = False
+        expired = (
+            cached is None or self._clock() - cached["fetched_at"] >= self.calendar_ttl
+        )
+        if expired:
+            try:
+                cached = await self._refresh(district_id)
+            except ApiError:
+                if cached is None:
+                    raise
+                stale = True
 
-        try:
-            return await self._refresh(district_id)
-        except ApiError:
-            if cached:
-                return CalendarResult(
-                    ics=cached["ics"],
-                    fetched_at=cached["fetched_at"],
-                    stale=True,
-                )
-            raise
+        ics = format_ics(
+            cached["district_name"],
+            filter_by_categories(cached["items"], categories),
+            now=dt.datetime.fromtimestamp(cached["fetched_at"], dt.timezone.utc),
+        )
+        return CalendarResult(ics=ics, fetched_at=cached["fetched_at"], stale=stale)
 
-    async def _refresh(self, district_id: int) -> CalendarResult:
+    async def _refresh(self, district_id: int) -> dict[str, Any]:
         regions = await self._load_json(_REGIONS_KEY)
         if regions is not None and _find_region(regions, district_id) is None:
             msg = f"District {district_id} not found"
@@ -147,16 +167,17 @@ class DistrictCalendarService:
 
         schedule_resp = await client.get_schedules()
         items = schedule_resp.get("data", [])
-        district_name = str(region.get("name") or f"Kreis {district_id}")
-        fetched_at = self._clock()
-        ics = format_ics(district_name, items if isinstance(items, list) else [])
-
+        entry = {
+            "fetched_at": self._clock(),
+            "district_name": str(region.get("name") or f"Kreis {district_id}"),
+            "items": items if isinstance(items, list) else [],
+        }
         await self._put_json(
-            _CALENDAR_KEY.format(district_id),
-            {"fetched_at": fetched_at, "ics": ics},
+            _SCHEDULE_KEY.format(district_id),
+            entry,
             ttl=self.stale_ttl,
         )
-        return CalendarResult(ics=ics, fetched_at=fetched_at)
+        return entry
 
     async def _load_identity(self, district_id: int) -> ClientIdentity:
         stored = await self._load_json(_IDENTITY_KEY.format(district_id))
@@ -183,6 +204,17 @@ class DistrictCalendarService:
 
     async def _put_json(self, key: str, value: Any, *, ttl: int | None = None) -> None:
         await self._store.put(key, json.dumps(value), ttl=ttl)
+
+
+def _valid_schedule(entry: Any) -> dict[str, Any] | None:
+    if (
+        isinstance(entry, dict)
+        and isinstance(entry.get("fetched_at"), (int, float))
+        and isinstance(entry.get("district_name"), str)
+        and isinstance(entry.get("items"), list)
+    ):
+        return entry
+    return None
 
 
 def _find_region(regions: Any, district_id: int) -> dict[str, Any] | None:

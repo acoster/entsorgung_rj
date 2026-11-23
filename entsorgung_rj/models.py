@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import unicodedata
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Any, NamedTuple
 
 
@@ -15,6 +18,81 @@ class ApiError(RuntimeError):
         super().__init__(f"HTTP {status}: {message}")
         self.status = status
         self.body = body
+
+
+class WasteCategory(IntEnum):
+    """Waste categories as numbered by the backend (`category_id`)."""
+
+    KARTON = 1
+    KEHRICHT = 2
+    GRUENGUT = 3
+    METALL = 4
+    PAPIER = 5
+
+    @classmethod
+    def parse(cls, value: str | int) -> WasteCategory:
+        """Resolve a category from its numeric ID or (case-insensitive) name.
+
+        Accepts e.g. `3`, `"3"`, `"gruengut"`, `"Grüngut"`.
+        Raises `ValueError` for unknown categories.
+        """
+        cleaned = str(value).strip()
+        if cleaned.isdigit():
+            try:
+                return cls(int(cleaned))
+            except ValueError:
+                pass
+        else:
+            key = _normalize_category_name(cleaned)
+            for member in cls:
+                if member.name == key:
+                    return member
+        valid = ", ".join(f"{m.value}={m.name.lower()}" for m in cls)
+        msg = f"Unknown waste category {value!r}. Valid categories: {valid}"
+        raise ValueError(msg)
+
+
+def _normalize_category_name(name: str) -> str:
+    upper = name.upper().replace("Ü", "UE").replace("Ö", "OE").replace("Ä", "AE")
+    return unicodedata.normalize("NFKD", upper).encode("ascii", "ignore").decode()
+
+
+def parse_categories(values: str | Iterable[str] | None) -> frozenset[WasteCategory]:
+    """Parse comma-separated category IDs/names into a set of `WasteCategory`.
+
+    Accepts a single string (`"1,2"`) or several (`["1", "papier"]`, e.g. a
+    repeated query parameter). Empty input yields an empty set, meaning "all".
+    Raises `ValueError` for unknown categories.
+    """
+    if values is None:
+        return frozenset()
+    if isinstance(values, str):
+        values = [values]
+    return frozenset(
+        WasteCategory.parse(token)
+        for value in values
+        for token in value.split(",")
+        if token.strip()
+    )
+
+
+def filter_by_categories(
+    schedules: list[dict[str, Any]],
+    categories: Iterable[WasteCategory | int] | None,
+) -> list[dict[str, Any]]:
+    """Keep schedule items whose `category_id` is in `categories` (empty = all)."""
+    wanted = {int(c) for c in categories or ()}
+    if not wanted:
+        return list(schedules)
+    result = []
+    for item in schedules:
+        try:
+            cat_id = int(item.get("category_id"))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+        if cat_id in wanted:
+            result.append(item)
+    return result
 
 
 class ClientIdentity(NamedTuple):

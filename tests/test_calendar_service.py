@@ -11,7 +11,7 @@ from entsorgung_rj.calendar_service import (
     DistrictCalendarService,
     DistrictNotFoundError,
 )
-from entsorgung_rj.models import ApiError
+from entsorgung_rj.models import ApiError, WasteCategory
 from entsorgung_rj.transport import HttpRequest, HttpResponse
 
 REGIONS = [{"id": i, "name": f"Kreis {i}"} for i in range(1, 9)]
@@ -74,6 +74,12 @@ class FakeBackend:
                                 "category_id": 1,
                                 "category": {"name": f"Papier R{region}"},
                             },
+                            {
+                                "id": region * 100 + 1,
+                                "scheduled_date_time": "2026-12-01T00:00:00Z",
+                                "category_id": 2,
+                                "category": {"name": f"Kehricht R{region}"},
+                            },
                         ],
                     },
                 },
@@ -121,7 +127,7 @@ class TestDistrictCalendarService(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn("identity:2", self.store.data)
         self.assertIn("regions", self.store.data)
-        self.assertIn("ics:2", self.store.data)
+        self.assertIn("schedule:2", self.store.data)
         self.assertIsNone(self.store.ttls["identity:2"])
 
     async def test_fresh_cache_hit_makes_no_requests(self) -> None:
@@ -211,6 +217,43 @@ class TestDistrictCalendarService(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.stale)
         self.assertEqual(result.ics, fresh.ics)
+
+    async def test_category_filter_shares_one_cached_schedule(self) -> None:
+        full = await self.service.get_calendar(2)
+        self.backend.requests.clear()
+
+        only_kehricht = await self.service.get_calendar(2, {WasteCategory.KEHRICHT})
+        explicit_all = await self.service.get_calendar(2, set(WasteCategory))
+
+        self.assertEqual(self.backend.requests, [])
+        self.assertIn("SUMMARY:Papier R2", full.ics)
+        self.assertIn("SUMMARY:Kehricht R2", full.ics)
+        self.assertIn("SUMMARY:Kehricht R2", only_kehricht.ics)
+        self.assertNotIn("Papier", only_kehricht.ics)
+        self.assertEqual(explicit_all.ics, full.ics)
+
+    async def test_category_filter_with_no_matches_yields_empty_calendar(
+        self,
+    ) -> None:
+        result = await self.service.get_calendar(2, [WasteCategory.METALL])
+        self.assertIn("BEGIN:VCALENDAR", result.ics)
+        self.assertNotIn("BEGIN:VEVENT", result.ics)
+
+    async def test_stale_fallback_applies_category_filter(self) -> None:
+        await self.service.get_calendar(4)
+        self.backend.fail = True
+        self.clock.now += DEFAULT_CALENDAR_TTL + 1
+
+        result = await self.service.get_calendar(4, [WasteCategory.KARTON])
+
+        self.assertTrue(result.stale)
+        self.assertIn("Papier R4", result.ics)
+        self.assertNotIn("Kehricht", result.ics)
+
+    async def test_legacy_ics_cache_entry_is_ignored(self) -> None:
+        self.store.data["schedule:2"] = json.dumps({"fetched_at": 1, "ics": "old"})
+        result = await self.service.get_calendar(2)
+        self.assertIn("Papier R2", result.ics)
 
     async def test_backend_failure_without_cache_raises(self) -> None:
         self.backend.fail = True

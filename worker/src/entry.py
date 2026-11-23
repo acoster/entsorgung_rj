@@ -1,17 +1,26 @@
 """Cloudflare Python Worker serving per-district waste collection calendars.
 
 Routes:
-    GET /<district-id>.ics   e.g. /2.ics for "Kreis 2"
+    GET /<district-id>.ics                    e.g. /2.ics for "Kreis 2"
+    GET /<district-id>.ics?categories=1,5     only the given waste categories
+
+Each GET of a feed is also counted in Workers Analytics Engine (`FEED_STATS`
+binding, see `entsorgung_rj.feed_stats`), without IPs or full user agents.
+
+`categories` takes comma-separated IDs or names of `WasteCategory` (1=karton,
+2=kehricht, 3=gruengut, 4=metall, 5=papier) and may be repeated. Omitted or
+empty means all categories.
 
 All state lives in the `CACHE` KV namespace (see `entsorgung_rj.calendar_service`):
-one long-lived upstream identity per district, the regions list, and the rendered
-calendars (fresh for `CALENDAR_TTL_SECONDS`, default 4 hours).
+one long-lived upstream identity per district, the regions list, and each district's
+schedule (fresh for `CALENDAR_TTL_SECONDS`, default 4 hours), from which the `.ics`
+is rendered per request.
 """
 
 from __future__ import annotations
 
 import re
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from js import Object
 from pyodide.ffi import to_js
@@ -22,7 +31,9 @@ from entsorgung_rj.calendar_service import (
     DistrictCalendarService,
     DistrictNotFoundError,
 )
-from entsorgung_rj.models import ApiError
+from entsorgung_rj.feed_stats import categories_label, feed_datapoint
+from entsorgung_rj.ical import calendar_filename
+from entsorgung_rj.models import ApiError, parse_categories
 
 _PATH_RE = re.compile(r"^/(\d{1,3})\.ics$")
 _KV_MIN_TTL = 60  # Workers KV rejects expirationTtl < 60s
@@ -70,10 +81,24 @@ class Default(WorkerEntrypoint):
         if request.method not in ("GET", "HEAD"):
             return _text("Method not allowed\n", 405)
 
-        match = _PATH_RE.match(urlparse(request.url).path)
+        url = urlparse(request.url)
+        match = _PATH_RE.match(url.path)
         if not match:
             return _text("Not found. Use /<district>.ics, e.g. /2.ics\n", 404)
         district_id = int(match.group(1))
+
+        response, categories, cache = await self._calendar(request, url, district_id)
+        if request.method == "GET":
+            self._record(request, district_id, categories, cache, response.status)
+        return response
+
+    async def _calendar(self, request, url, district_id: int):
+        """Return `(response, categories label, cache state)` for a feed request."""
+        try:
+            categories = parse_categories(parse_qs(url.query).get("categories"))
+        except ValueError as exc:
+            return _text(f"{exc}\n", 400), "invalid", "none"
+        label = categories_label(categories)
 
         calendar_ttl = _env_int(self.env, "CALENDAR_TTL_SECONDS", DEFAULT_CALENDAR_TTL)
         service = DistrictCalendarService(
@@ -82,18 +107,38 @@ class Default(WorkerEntrypoint):
         )
 
         try:
-            result = await service.get_calendar(district_id)
+            result = await service.get_calendar(district_id, categories)
         except DistrictNotFoundError as exc:
-            return _text(f"{exc}\n", 404)
+            return _text(f"{exc}\n", 404), label, "none"
         except ApiError as exc:
             print(f"upstream error for district {district_id}: {exc}")
-            return _text("Upstream calendar service unavailable\n", 502)
+            return _text("Upstream calendar service unavailable\n", 502), label, "none"
 
         headers = {
             "Content-Type": "text/calendar; charset=utf-8",
-            "Content-Disposition": f'inline; filename="kreis-{district_id}.ics"',
+            "Content-Disposition": (
+                f'inline; filename="{calendar_filename(district_id, categories)}"'
+            ),
             "Cache-Control": f"public, max-age={min(calendar_ttl, 3600)}",
             "X-Calendar-Cache": "stale" if result.stale else "ok",
         }
         body = "" if request.method == "HEAD" else result.ics
-        return Response(body, headers=headers)
+        cache = "stale" if result.stale else "fresh"
+        return Response(body, headers=headers), label, cache
+
+    def _record(self, request, district_id, categories, cache, status) -> None:
+        """Write a usage data point; never lets analytics break the feed."""
+        dataset = getattr(self.env, "FEED_STATS", None)
+        if dataset is None:
+            return
+        try:
+            point = feed_datapoint(
+                district_id=district_id,
+                categories=categories,
+                user_agent=request.headers.get("User-Agent"),
+                cache=cache,
+                status=int(status),
+            )
+            dataset.writeDataPoint(to_js(point, dict_converter=Object.fromEntries))
+        except Exception as exc:  # noqa: BLE001
+            print(f"analytics write failed: {exc}")

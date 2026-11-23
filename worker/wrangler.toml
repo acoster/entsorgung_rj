@@ -9,6 +9,12 @@ binding = "CACHE"
 # If your Wrangler version doesn't, run `npx wrangler kv namespace create CACHE`
 # and add the returned id here as `id = "..."`.
 
+# Anonymous per-request feed stats (see entsorgung_rj/feed_stats.py). The
+# dataset is created on first write; remove this block to disable stats.
+[[analytics_engine_datasets]]
+binding = "FEED_STATS"
+dataset = "entsorgung_rj_feeds"
+
 [vars]
 # How long a rendered calendar is served before refreshing from upstream.
 CALENDAR_TTL_SECONDS = "14400"

@@ -5,11 +5,32 @@ from __future__ import annotations
 import datetime as dt
 import unittest
 
-from entsorgung_rj.ical import escape_ics_text, format_ics, format_schedule_ics
-from entsorgung_rj.models import DistrictSchedule
+from entsorgung_rj.ical import (
+    calendar_filename,
+    escape_ics_text,
+    format_ics,
+    format_schedule_ics,
+)
+from entsorgung_rj.models import DistrictSchedule, WasteCategory
 
 
 class TestIcal(unittest.TestCase):
+    def test_calendar_filename(self) -> None:
+        self.assertEqual(calendar_filename(2), "entsorgung-kreis-2.ics")
+        self.assertEqual(calendar_filename(2, frozenset()), "entsorgung-kreis-2.ics")
+        self.assertEqual(
+            calendar_filename(2, [WasteCategory.PAPIER, WasteCategory.KEHRICHT]),
+            "entsorgung-kreis-2-kehricht-papier.ics",
+        )
+        self.assertEqual(
+            calendar_filename(2, set(WasteCategory)),
+            "entsorgung-kreis-2.ics",
+        )
+        self.assertEqual(
+            calendar_filename(7, {WasteCategory.GRUENGUT}),
+            "entsorgung-kreis-7-gruengut.ics",
+        )
+
     def test_escape_ics_text(self) -> None:
         raw = "A\\B;C,D\r\nE\nF"
         self.assertEqual(escape_ics_text(raw), r"A\\B\;C\,D\nE\nF")
