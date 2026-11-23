@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entsorgungskalender Rapperswil-Jona</title>
+<meta name="description" content="Abfuhrtermine von Rapperswil-Jona als Kalender-Abo (iCal) für jeden Kreis.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f5;
+    --card: #ffffff;
+    --text: #1d2420;
+    --muted: #5d6a63;
+    --border: #dfe4e0;
+    --accent: #2f7d4f;
+    --accent-text: #ffffff;
+    --accent-soft: #e5f2ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141816;
+      --card: #1d2320;
+      --text: #e8ece9;
+      --muted: #9aa8a0;
+      --border: #313a35;
+      --accent: #5cbf83;
+      --accent-text: #0e1a13;
+      --accent-soft: #23362b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 .75rem; }
+  p { margin: 0 0 1rem; }
+  .lead { color: var(--muted); }
+  a { color: var(--accent); }
+
+  .districts {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  @media (max-width: 26rem) { .districts { grid-template-columns: repeat(2, 1fr); } }
+  .districts legend { font-weight: 600; margin-bottom: .75rem; padding: 0; }
+  .districts input { position: absolute; opacity: 0; pointer-events: none; }
+  .districts label {
+    display: block;
+    text-align: center;
+    padding: .75rem .5rem;
+    border: 1px solid var(--border);
+    border-radius: .6rem;
+    background: var(--card);
+    cursor: pointer;
+    font-weight: 500;
+    transition: border-color .15s, background .15s;
+  }
+  .districts label:hover { border-color: var(--accent); }
+  .districts input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .districts input:checked + label {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .panel {
+    margin-top: 1.25rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: .8rem;
+    background: var(--card);
+  }
+  .panel[hidden] { display: none; }
+  .panel h2 { margin-top: 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .6rem 1rem;
+    border-radius: .5rem;
+    border: 1px solid var(--accent);
+    font: inherit;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--accent);
+  }
+  .button.primary { background: var(--accent); color: var(--accent-text); }
+  @media (max-width: 30rem) { .actions .button { flex: 1 1 100%; justify-content: center; } }
+  .button:hover { filter: brightness(1.08); }
+  .url { display: flex; gap: .5rem; }
+  .url input {
+    flex: 1;
+    min-width: 0;
+    padding: .55rem .7rem;
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    background: var(--bg);
+    color: var(--text);
+    font: .9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .hint { color: var(--muted); font-size: .9rem; margin: .75rem 0 0; }
+
+  details {
+    border: 1px solid var(--border);
+    border-radius: .6rem;
+    background: var(--card);
+    padding: .75rem 1rem;
+    margin-bottom: .5rem;
+  }
+  summary { cursor: pointer; font-weight: 500; }
+  details ol { margin: .75rem 0 .25rem; padding-left: 1.25rem; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>♻️ Entsorgungskalender Rapperswil-Jona</h1>
+  <p class="lead">
+    Die Abfuhrtermine für Kehricht, Papier, Karton, Grüngut und Metall als Kalender-Abo.
+    Die Termine erscheinen direkt in Ihrem Kalender und aktualisieren sich automatisch.
+  </p>
+
+  <fieldset class="districts" id="districts">
+    <legend>1. Kreis wählen</legend>
+  </fieldset>
+
+  <section class="panel" id="panel" hidden aria-live="polite">
+    <h2>2. Kalender für <span id="district-name"></span> hinzufügen</h2>
+    <div class="actions">
+      <a class="button primary" id="subscribe">📅 Abonnieren</a>
+      <a class="button" id="google" target="_blank" rel="noopener">Google Kalender</a>
+      <a class="button" id="download" download>Herunterladen (.ics)</a>
+    </div>
+    <div class="url">
+      <input id="url" type="text" readonly aria-label="Kalender-Adresse">
+      <button class="button" id="copy" type="button">Kopieren</button>
+    </div>
+    <p class="hint">
+      «Abonnieren» öffnet die Kalender-App auf iPhone, Mac und in Outlook.
+      Ein Abo bleibt aktuell, eine heruntergeladene Datei nicht.
+    </p>
+  </section>
+
+  <h2>Hilfe</h2>
+  <details>
+    <summary>Android / Google Kalender</summary>
+    <ol>
+      <li>Auf «Google Kalender» klicken und das Abo bestätigen (am besten am Computer).</li>
+      <li>Der Kalender erscheint danach auch in der Google-Kalender-App auf dem Handy.</li>
+    </ol>
+  </details>
+  <details>
+    <summary>iPhone, iPad und Mac</summary>
+    <ol>
+      <li>Auf «Abonnieren» tippen.</li>
+      <li>Das Abonnement in der Kalender-App bestätigen.</li>
+    </ol>
+  </details>
+  <details>
+    <summary>Outlook und andere Kalender</summary>
+    <ol>
+      <li>Die Adresse oben kopieren.</li>
+      <li>Im Kalender «Kalender hinzufügen» → «Aus dem Internet» bzw. «Per URL abonnieren» wählen und die Adresse einfügen.</li>
+    </ol>
+  </details>
+  <details>
+    <summary>Welcher Kreis bin ich?</summary>
+    <p style="margin: .75rem 0 .25rem">
+      Die Einteilung der Kreise finden Sie im offiziellen Entsorgungskalender bzw. der App
+      «Entsorgung RJ» der <a href="https://www.rapperswil-jona.ch" target="_blank" rel="noopener">Stadt Rapperswil-Jona</a>.
+    </p>
+  </details>
+
+  <footer>
+    Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH.
+    Angaben ohne Gewähr; massgebend ist der offizielle Entsorgungskalender.
+    Die Termine werden alle paar Stunden aktualisiert.
+    · <a href="https://github.com/acoster/entsorgung_rj">Quellcode auf GitHub</a>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const DISTRICTS = 8;
+  const fieldset = document.getElementById("districts");
+  const panel = document.getElementById("panel");
+  const els = Object.fromEntries(
+    ["district-name", "subscribe", "google", "download", "url", "copy"]
+      .map((id) => [id, document.getElementById(id)]),
+  );
+
+  for (let n = 1; n <= DISTRICTS; n++) {
+    const input = Object.assign(document.createElement("input"), {
+      type: "radio", name: "district", id: `k${n}`, value: String(n),
+    });
+    const label = Object.assign(document.createElement("label"), {
+      htmlFor: `k${n}`, textContent: `Kreis ${n}`,
+    });
+    input.addEventListener("change", () => select(n, true));
+    fieldset.append(input, label);
+  }
+
+  function select(n, remember) {
+    const httpsUrl = `${location.origin}/${n}.ics`;
+    const webcalUrl = httpsUrl.replace(/^https?:/, "webcal:");
+    document.getElementById(`k${n}`).checked = true;
+    els["district-name"].textContent = `Kreis ${n}`;
+    els.subscribe.href = webcalUrl;
+    els.google.href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(webcalUrl);
+    els.download.href = httpsUrl;
+    els.download.setAttribute("download", `entsorgung-kreis-${n}.ics`);
+    els.url.value = httpsUrl;
+    els.copy.textContent = "Kopieren";
+    panel.hidden = false;
+    if (remember) {
+      history.replaceState(null, "", `#kreis-${n}`);
+      try { localStorage.setItem("kreis", String(n)); } catch {}
+    }
+  }
+
+  els.copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(els.url.value);
+    } catch {
+      els.url.select();
+      document.execCommand("copy");
+    }
+    els.copy.textContent = "Kopiert ✓";
+  });
+  els.url.addEventListener("focus", () => els.url.select());
+
+  let initial = Number((location.hash.match(/^#kreis-(\d+)$/) || [])[1]);
+  if (!initial) { try { initial = Number(localStorage.getItem("kreis")); } catch {} }
+  if (initial >= 1 && initial <= DISTRICTS) select(initial, false);
+})();
+</script>
+</body>
+</html>

@@ -3,8 +3,13 @@
 Serves the Rapperswil-Jona waste collection calendar for each district as iCalendar:
 
 ```
+GET /                    # landing page: pick a district, subscribe / download / copy URL
 GET /1.ics … /8.ics      # Kreis 1 … Kreis 8
 ```
+
+The landing page is a single static file, [`public/index.html`](./public/index.html), served
+via Workers static assets. It is delivered from the edge without running the Python Worker;
+any path that isn't a file (e.g. `/2.ics`) falls through to the Worker.
 
 Subscribe to e.g. `https://entsorgung-rj.<your-subdomain>.workers.dev/2.ics` in any calendar app.
 
