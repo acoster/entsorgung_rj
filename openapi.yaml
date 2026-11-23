@@ -1,0 +1,530 @@
+openapi: 3.0.3
+info:
+  title: Entsorgung RJ API
+  version: "1.4.8"
+  description: >
+    Unofficial OpenAPI specification for the Rapperswil-Jona waste disposal
+    calendar backend (`ch.adaptit.entsorgungrj`), reverse-engineered from the
+    Flutter mobile application.
+  contact:
+    email: entsorgungskalender@rj.sg.ch
+
+servers:
+  - url: https://wastedisposalschedule-be.adaptit.ch/api/v1
+    description: Production API (AdaptIT GmbH)
+
+security:
+  - DeviceTokenAuth: []
+    AnonymousUserIdAuth: []
+
+paths:
+  /register-device:
+    post:
+      summary: Register a device token and anonymous user ID
+      description: >
+        Registers a client identity on the backend. Both `device-token` and
+        `anonymous-user-id` are required in the JSON body; any non-empty string
+        and UUID v4 are accepted.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device-token
+                - anonymous-user-id
+              properties:
+                device-token:
+                  type: string
+                  example: cli-3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                anonymous-user-id:
+                  type: string
+                  format: uuid
+                  example: 3d83c7ea-7713-4672-99ee-c3ba7abb162c
+      responses:
+        "200":
+          description: Registration succeeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleSuccessResponse"
+        "400":
+          description: Missing or invalid body fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /regions:
+    get:
+      summary: List all Rapperswil-Jona waste collection districts
+      responses:
+        "200":
+          description: List of districts (Kreise)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Region"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /set-region-preference:
+    post:
+      summary: Set the active district for a registered device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - device-token
+                - anonymous-user-id
+                - region-id
+              properties:
+                device-token:
+                  type: string
+                  example: cli-3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                anonymous-user-id:
+                  type: string
+                  format: uuid
+                  example: 3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                region-id:
+                  type: integer
+                  minimum: 1
+                  maximum: 8
+                  example: 2
+      responses:
+        "200":
+          description: District preference updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleSuccessResponse"
+        "400":
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /collection-schedule:
+    get:
+      summary: Retrieve the upcoming 60-day rubbish collection schedule
+      description: >
+        Returns collection events for the district currently associated with
+        the caller's `device-token` (defaults to `region_id = 1` if unregistered).
+      responses:
+        "200":
+          description: Collection schedule window
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CollectionSchedulePage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /categories:
+    get:
+      summary: List all waste categories
+      responses:
+        "200":
+          description: Waste categories with descriptions and icons
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Category"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /self-disposals:
+    get:
+      summary: List local drop-off and recycling centers
+      responses:
+        "200":
+          description: Self-disposal locations and opening hours
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SelfDisposal"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /get-company-settings:
+    get:
+      summary: Get municipal links and PDF calendar URL
+      responses:
+        "200":
+          description: Company settings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CompanySettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /get-preference:
+    get:
+      summary: Get notification category preferences for the device
+      responses:
+        "200":
+          description: Categories and active notification subscriptions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          categories:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Category"
+                          preference:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/NotificationPreference"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /set-preference:
+    post:
+      summary: Update notification category preferences for the device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - category_ids
+              properties:
+                device-token:
+                  type: string
+                anonymous-user-id:
+                  type: string
+                  format: uuid
+                category_ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1, 2, 3, 5]
+      responses:
+        "200":
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleSuccessResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    DeviceTokenAuth:
+      type: apiKey
+      in: header
+      name: device-token
+      description: Device token registered via POST /register-device
+    AnonymousUserIdAuth:
+      type: apiKey
+      in: header
+      name: anonymous-user-id
+      description: Client UUID v4 registered via POST /register-device
+
+  responses:
+    Unauthorized:
+      description: Missing `device-token` or `anonymous-user-id` header
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: OK
+
+    SimpleSuccessResponse:
+      allOf:
+        - $ref: "#/components/schemas/BaseResponse"
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Success
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Bad Request
+        data:
+          nullable: true
+
+    Region:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: Kreis 2
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: Kehricht
+        description:
+          type: string
+          nullable: true
+        included:
+          type: string
+          nullable: true
+        not_included:
+          type: string
+          nullable: true
+        icon:
+          type: string
+          nullable: true
+        iconpath:
+          type: string
+          format: uri
+          nullable: true
+        status:
+          type: integer
+          example: 1
+        added_by:
+          type: integer
+          nullable: true
+        updated_by:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CollectionScheduleItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3434
+        category_id:
+          type: integer
+          example: 2
+        region_id:
+          type: integer
+          example: 2
+        scheduled_date_time:
+          type: string
+          format: date
+          example: "2026-11-23"
+        status:
+          type: integer
+          example: 1
+        added_by:
+          type: integer
+          nullable: true
+        updated_by:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        category:
+          $ref: "#/components/schemas/Category"
+
+    CollectionSchedulePage:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        days:
+          type: integer
+          example: 60
+        start_date:
+          type: string
+          format: date
+          example: "2026-11-21"
+        end_date:
+          type: string
+          format: date
+          example: "2027-01-19"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CollectionScheduleItem"
+
+    SelfDisposalTiming:
+      type: object
+      properties:
+        id:
+          type: integer
+        self_disposal_id:
+          type: integer
+        available_days:
+          type: string
+          example: Mo-Fr
+        available_times:
+          type: string
+          example: 10:00-12:00,13:30-18:00
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    SelfDisposal:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        location:
+          type: string
+          example: Engelhölzli
+        address:
+          type: string
+          example: Engelhölzlistrasse 25, Jona
+        latitude:
+          type: string
+          example: "47.24886315766557"
+        longitude:
+          type: string
+          example: "8.833253100187898"
+        phone:
+          type: string
+          nullable: true
+          example: "0552161525"
+        timings:
+          type: array
+          items:
+            $ref: "#/components/schemas/SelfDisposalTiming"
+
+    CompanySettings:
+      type: object
+      properties:
+        website:
+          type: string
+          format: uri
+          example: https://www.rapperswil-jona.ch/datenschutz
+        email:
+          type: string
+          format: email
+          example: entsorgungskalender@rj.sg.ch
+        waste_disposal_calender_link:
+          type: string
+          format: uri
+          example: https://www.rapperswil-jona.ch/_docn/6538859/def._Entsorgungskalender_2026_RJ.pdf
+
+    NotificationPreference:
+      type: object
+      properties:
+        id:
+          type: integer
+        device_id:
+          type: integer
+        category_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
