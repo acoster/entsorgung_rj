@@ -29,8 +29,7 @@ returns `502`. Unknown districts return `404`.
 ```bash
 cd worker
 npm install
-npx wrangler kv namespace create CACHE   # paste the id into wrangler.toml
-npx wrangler deploy
+npx wrangler deploy   # creates the CACHE KV namespace on first deploy
 ```
 
 Local development: `npx wrangler dev`.
