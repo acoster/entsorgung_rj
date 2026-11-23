@@ -18,3 +18,8 @@ CALENDAR_TTL_SECONDS = "14400"
 [build]
 command = "rm -rf src/entsorgung_rj && cp -r ../entsorgung_rj src/entsorgung_rj && find src/entsorgung_rj -name __pycache__ -prune -exec rm -rf {} +"
 watch_dir = ["src/entry.py", "../entsorgung_rj"]
+
+# Static landing page (public/index.html) served at "/" straight from the edge.
+# Requests that don't match a file (e.g. /2.ics) fall through to the Python Worker.
+[assets]
+directory = "public"
