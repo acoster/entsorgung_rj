@@ -5,7 +5,22 @@ Serves the Rapperswil-Jona waste collection calendar for each district as iCalen
 ```
 GET /                    # landing page: pick a district, subscribe / download / copy URL
 GET /1.ics … /8.ics      # Kreis 1 … Kreis 8
+GET /2.ics?categories=2,5            # only Kehricht and Papier
+GET /2.ics?categories=kehricht,papier  # same, by name
 ```
+
+`categories` filters the events by waste category (`WasteCategory` in
+[`entsorgung_rj/models.py`](../entsorgung_rj/models.py)). It takes comma-separated IDs or
+names, may be repeated (`?categories=2&categories=5`), and omitting it (or leaving it empty)
+includes all categories. Unknown categories return `400`.
+
+| ID | Name | Category |
+|---|---|---|
+| 1 | `karton` | Karton |
+| 2 | `kehricht` | Kehricht |
+| 3 | `gruengut` | Grüngut |
+| 4 | `metall` | Metall |
+| 5 | `papier` | Papier |
 
 The landing page is a single static file, [`public/index.html`](./public/index.html), served
 via Workers static assets. It is delivered from the edge without running the Python Worker;
@@ -22,7 +37,10 @@ All state lives in the `CACHE` KV namespace (logic in
 |---|---|---|
 | `identity:<id>` | Upstream identity bound to that district (one per district, registered once) | permanent |
 | `regions` | District list, used to validate IDs without calling upstream | 1 day |
-| `ics:<id>` | Rendered calendar + fetch timestamp | fresh for `CALENDAR_TTL_SECONDS` (default 4 h), kept 7 days as a fallback |
+| `schedule:<id>` | District name, raw collection items + fetch timestamp | fresh for `CALENDAR_TTL_SECONDS` (default 4 h), kept 7 days as a fallback |
+
+The `.ics` is rendered from `schedule:<id>` on every request, so all category filters for
+a district share one cache entry and one upstream fetch.
 
 Upstream traffic per district is therefore roughly 2 requests (`set-region-preference` +
 `collection-schedule`) every 4 hours, plus a one-off `register-device`. If upstream fails,

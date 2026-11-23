@@ -10,9 +10,12 @@ from entsorgung_rj.models import (
     ApiError,
     ClientIdentity,
     DistrictSchedule,
+    WasteCategory,
+    filter_by_categories,
     filter_schedules,
     generate_identity,
     get_category_name,
+    parse_categories,
     parse_schedule_date,
     resolve_district,
 )
@@ -172,6 +175,55 @@ class TestScheduleHelpers(unittest.TestCase):
             today=dt.date(2026, 11, 22),
         )
         self.assertEqual(combined, [])
+
+
+class TestWasteCategory(unittest.TestCase):
+    def test_values_match_backend_ids(self) -> None:
+        self.assertEqual(
+            {c.name: c.value for c in WasteCategory},
+            {"KARTON": 1, "KEHRICHT": 2, "GRUENGUT": 3, "METALL": 4, "PAPIER": 5},
+        )
+
+    def test_parse_by_id_and_name(self) -> None:
+        self.assertIs(WasteCategory.parse(3), WasteCategory.GRUENGUT)
+        self.assertIs(WasteCategory.parse(" 5 "), WasteCategory.PAPIER)
+        self.assertIs(WasteCategory.parse("kehricht"), WasteCategory.KEHRICHT)
+        self.assertIs(WasteCategory.parse("Grüngut"), WasteCategory.GRUENGUT)
+        self.assertIs(WasteCategory.parse("GRUENGUT"), WasteCategory.GRUENGUT)
+
+    def test_parse_rejects_unknown(self) -> None:
+        for bad in ("0", "6", "glas", "-1", ""):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                WasteCategory.parse(bad)
+
+    def test_parse_categories(self) -> None:
+        self.assertEqual(parse_categories(None), frozenset())
+        self.assertEqual(parse_categories(""), frozenset())
+        self.assertEqual(parse_categories([""]), frozenset())
+        self.assertEqual(
+            parse_categories("1, papier,,1"),
+            {WasteCategory.KARTON, WasteCategory.PAPIER},
+        )
+        self.assertEqual(
+            parse_categories(["2", "3,4"]),
+            {WasteCategory.KEHRICHT, WasteCategory.GRUENGUT, WasteCategory.METALL},
+        )
+        with self.assertRaises(ValueError):
+            parse_categories("1,7")
+
+    def test_filter_by_categories(self) -> None:
+        items = [
+            {"id": 1, "category_id": 1},
+            {"id": 2, "category_id": "2"},
+            {"id": 3, "category_id": 5},
+            {"id": 4},
+        ]
+        self.assertEqual(filter_by_categories(items, None), items)
+        self.assertEqual(filter_by_categories(items, set()), items)
+        self.assertEqual(
+            [i["id"] for i in filter_by_categories(items, [WasteCategory.KEHRICHT, 5])],
+            [2, 3],
+        )
 
 
 if __name__ == "__main__":

@@ -113,6 +113,16 @@
     font: .9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   .hint { color: var(--muted); font-size: .9rem; margin: .75rem 0 0; }
+  .categories { border: 0; margin: 0 0 1rem; padding: 0; }
+  .categories legend { font-weight: 500; margin-bottom: .4rem; padding: 0; }
+  .categories label {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    margin: 0 1rem .35rem 0;
+    cursor: pointer;
+  }
+  .categories input { accent-color: var(--accent); width: 1.05rem; height: 1.05rem; }
 
   details {
     border: 1px solid var(--border);
@@ -140,6 +150,9 @@
 
   <section class="panel" id="panel" hidden aria-live="polite">
     <h2>2. Kalender für <span id="district-name"></span> hinzufügen</h2>
+    <fieldset class="categories" id="categories">
+      <legend>Abfallarten</legend>
+    </fieldset>
     <div class="actions">
       <a class="button primary" id="subscribe">📅 Abonnieren</a>
       <a class="button" id="google" target="_blank" rel="noopener">Google Kalender</a>
@@ -196,12 +209,47 @@
 <script>
 (() => {
   const DISTRICTS = 8;
+  // IDs match `WasteCategory` in entsorgung_rj/models.py.
+  const CATEGORIES = [
+    [2, "Kehricht"], [5, "Papier"], [1, "Karton"], [3, "Grüngut"], [4, "Metall"],
+  ];
+  let current = 0;
   const fieldset = document.getElementById("districts");
   const panel = document.getElementById("panel");
   const els = Object.fromEntries(
     ["district-name", "subscribe", "google", "download", "url", "copy"]
       .map((id) => [id, document.getElementById(id)]),
   );
+
+  const catFieldset = document.getElementById("categories");
+  const catInputs = CATEGORIES.map(([id, name]) => {
+    const input = Object.assign(document.createElement("input"), {
+      type: "checkbox", value: String(id), checked: true,
+    });
+    const label = document.createElement("label");
+    label.append(input, name);
+    catFieldset.append(label);
+    input.addEventListener("change", () => {
+      // Keep at least one category selected; none would be an empty calendar.
+      if (!catInputs.some((i) => i.checked)) input.checked = true;
+      try {
+        localStorage.setItem("categories", selectedCategories().join(","));
+      } catch {}
+      if (current) select(current, false);
+    });
+    return input;
+  });
+
+  function selectedCategories() {
+    const ids = catInputs.filter((i) => i.checked).map((i) => Number(i.value));
+    return ids.length === catInputs.length ? [] : ids.sort((a, b) => a - b);
+  }
+
+  try {
+    const saved = (localStorage.getItem("categories") || "").split(",").filter(Boolean);
+    if (saved.length) catInputs.forEach((i) => { i.checked = saved.includes(i.value); });
+    if (!catInputs.some((i) => i.checked)) catInputs.forEach((i) => { i.checked = true; });
+  } catch {}
 
   for (let n = 1; n <= DISTRICTS; n++) {
     const input = Object.assign(document.createElement("input"), {
@@ -215,7 +263,10 @@
   }
 
   function select(n, remember) {
-    const httpsUrl = `${location.origin}/${n}.ics`;
+    current = n;
+    const cats = selectedCategories();
+    const query = cats.length ? `?categories=${cats.join(",")}` : "";
+    const httpsUrl = `${location.origin}/${n}.ics${query}`;
     const webcalUrl = httpsUrl.replace(/^https?:/, "webcal:");
     document.getElementById(`k${n}`).checked = true;
     els["district-name"].textContent = `Kreis ${n}`;

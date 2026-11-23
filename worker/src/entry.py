@@ -1,17 +1,23 @@
 """Cloudflare Python Worker serving per-district waste collection calendars.
 
 Routes:
-    GET /<district-id>.ics   e.g. /2.ics for "Kreis 2"
+    GET /<district-id>.ics                    e.g. /2.ics for "Kreis 2"
+    GET /<district-id>.ics?categories=1,5     only the given waste categories
+
+`categories` takes comma-separated IDs or names of `WasteCategory` (1=karton,
+2=kehricht, 3=gruengut, 4=metall, 5=papier) and may be repeated. Omitted or
+empty means all categories.
 
 All state lives in the `CACHE` KV namespace (see `entsorgung_rj.calendar_service`):
-one long-lived upstream identity per district, the regions list, and the rendered
-calendars (fresh for `CALENDAR_TTL_SECONDS`, default 4 hours).
+one long-lived upstream identity per district, the regions list, and each district's
+schedule (fresh for `CALENDAR_TTL_SECONDS`, default 4 hours), from which the `.ics`
+is rendered per request.
 """
 
 from __future__ import annotations
 
 import re
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from js import Object
 from pyodide.ffi import to_js
@@ -22,7 +28,7 @@ from entsorgung_rj.calendar_service import (
     DistrictCalendarService,
     DistrictNotFoundError,
 )
-from entsorgung_rj.models import ApiError
+from entsorgung_rj.models import ApiError, parse_categories
 
 _PATH_RE = re.compile(r"^/(\d{1,3})\.ics$")
 _KV_MIN_TTL = 60  # Workers KV rejects expirationTtl < 60s
@@ -70,10 +76,16 @@ class Default(WorkerEntrypoint):
         if request.method not in ("GET", "HEAD"):
             return _text("Method not allowed\n", 405)
 
-        match = _PATH_RE.match(urlparse(request.url).path)
+        url = urlparse(request.url)
+        match = _PATH_RE.match(url.path)
         if not match:
             return _text("Not found. Use /<district>.ics, e.g. /2.ics\n", 404)
         district_id = int(match.group(1))
+
+        try:
+            categories = parse_categories(parse_qs(url.query).get("categories"))
+        except ValueError as exc:
+            return _text(f"{exc}\n", 400)
 
         calendar_ttl = _env_int(self.env, "CALENDAR_TTL_SECONDS", DEFAULT_CALENDAR_TTL)
         service = DistrictCalendarService(
@@ -82,7 +94,7 @@ class Default(WorkerEntrypoint):
         )
 
         try:
-            result = await service.get_calendar(district_id)
+            result = await service.get_calendar(district_id, categories)
         except DistrictNotFoundError as exc:
             return _text(f"{exc}\n", 404)
         except ApiError as exc:

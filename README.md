@@ -36,7 +36,9 @@ On first run the CLI creates an anonymous client identity and caches it in
 ## Calendar feed (Cloudflare Worker)
 
 [`worker/`](./worker) deploys a Python Worker that serves `GET /1.ics` … `/8.ics`.
-It keeps one backend identity per district and caches calendars for 4 hours.
+Add `?categories=` to include only some waste categories (e.g. `/2.ics?categories=kehricht,papier`
+or `/2.ics?categories=2,5`). It keeps one backend identity per district and caches
+calendars for 4 hours.
 See [worker/README.md](./worker/README.md) for setup and caching details.
 
 ## Documentation
