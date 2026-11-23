@@ -4,7 +4,7 @@ Unofficial Python client and iCalendar exporter for the Rapperswil-Jona waste
 collection calendar (the *Entsorgung RJ* app), plus a Cloudflare Worker that
 publishes each district's calendar as a subscribable `.ics` feed.
 
-- **Standard library only.** No runtime dependencies, Python 3.9+.
+- **Standard library only.** No runtime dependencies, Python 3.10+.
 - **CLI:** list districts and show or export a district's collection dates.
 - **Library:** sync and async clients with pluggable HTTP transports.
 - **Cloudflare Worker:** serves `/<district>.ics` with KV caching, so calendar

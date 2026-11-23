@@ -9,7 +9,7 @@ description = "Unofficial client and iCalendar exporter for the Rapperswil-Jona 
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Alex Coster" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = []
 classifiers = [
     "License :: OSI Approved :: MIT License",
