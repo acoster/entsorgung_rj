@@ -1,0 +1,4 @@
+node_modules/
+.wrangler/
+src/entsorgung_rj/
+.dev.vars

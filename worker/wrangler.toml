@@ -1,0 +1,20 @@
+name = "entsorgung-rj"
+main = "src/entry.py"
+compatibility_date = "2025-11-01"
+compatibility_flags = ["python_workers"]
+
+[[kv_namespaces]]
+binding = "CACHE"
+# No id: `wrangler deploy` provisions the namespace on first deploy and reuses it.
+# If your Wrangler version doesn't, run `npx wrangler kv namespace create CACHE`
+# and add the returned id here as `id = "..."`.
+
+[vars]
+# How long a rendered calendar is served before refreshing from upstream.
+CALENDAR_TTL_SECONDS = "14400"
+
+# Python Workers only bundle modules under the entry's directory, so vendor the
+# shared library package (from the repo root) in before every dev/deploy.
+[build]
+command = "rm -rf src/entsorgung_rj && cp -r ../entsorgung_rj src/entsorgung_rj && find src/entsorgung_rj -name __pycache__ -prune -exec rm -rf {} +"
+watch_dir = ["src/entry.py", "../entsorgung_rj"]

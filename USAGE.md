@@ -12,6 +12,7 @@ Importing `entsorgung_rj` is filesystem-free and safe to use in serverless runti
 | `entsorgung_rj.transport` | Pluggable `SyncTransport` (`HttpClientTransport`) and `AsyncTransport` (`FetchTransport`) |
 | `entsorgung_rj.client` | Sync (`EntsorgungClient`) and async (`AsyncEntsorgungClient`) API clients |
 | `entsorgung_rj.ical` | Pure RFC 5545 `.ics` calendar serialization (`format_ics`, `format_schedule_ics`) |
+| `entsorgung_rj.calendar_service` | KV-cached per-district `.ics` service used by the Cloudflare Worker (`DistrictCalendarService`) |
 | `entsorgung_rj.formatters` | Terminal table and JSON output formatters |
 | `entsorgung_rj.storage` | Local `~/.config/entsorgung_rj/client.json` identity cache (CLI / local only) |
 | `entsorgung_rj.cli` | Command-line interface (`python3 -m entsorgung_rj`) |
@@ -136,6 +137,10 @@ class Default(WorkerEntrypoint):
 ```
 
 > **Concurrency note:** The upstream backend stores the active district server-side per `device-token`. In a Worker serving multiple districts concurrently, avoid sharing a single `ClientIdentity` across requests for different districts—either generate a fresh identity per request (`generate_identity()`) or maintain a separate cached identity per district (e.g. in KV) so concurrent `set-region-preference` calls cannot overwrite each other.
+
+### Ready-made deployment: `worker/`
+
+The [`worker/`](./worker) directory contains a deployable Worker that serves `GET /<district-id>.ics` (e.g. `/2.ics` for *Kreis 2*). It uses `entsorgung_rj.calendar_service.DistrictCalendarService` with Workers KV to keep **one long-lived identity per district**, cache the regions list for a day, and cache each rendered calendar for 4 hours (serving the last good copy if the backend is down). See [worker/README.md](./worker/README.md) for setup.
 
 ---
 

@@ -226,6 +226,10 @@ class EntsorgungClient(_BaseEntsorgungClient):
         """List available districts, registering or re-registering if needed."""
         return self._run_authenticated(self.get_regions)
 
+    def select_region(self, region_id: int) -> dict[str, Any]:
+        """Set the active district, registering or re-registering if needed."""
+        return self._run_authenticated(lambda: self.set_region(region_id))
+
     def get_district_schedule(
         self,
         district: str | int,
@@ -237,7 +241,7 @@ class EntsorgungClient(_BaseEntsorgungClient):
         """Resolve a district, select it server-side, and return filtered schedules."""
         regions = self.list_regions()
         region = resolve_district(district, regions)
-        self._run_authenticated(lambda: self.set_region(int(region["id"])))
+        self.select_region(int(region["id"]))
         schedule_resp = self.get_schedules()
         schedules = filter_schedules(
             schedule_resp.get("data", []),
@@ -339,6 +343,10 @@ class AsyncEntsorgungClient(_BaseEntsorgungClient):
         """List available districts, registering or re-registering if needed."""
         return await self._run_authenticated(self.get_regions)
 
+    async def select_region(self, region_id: int) -> dict[str, Any]:
+        """Set the active district, registering or re-registering if needed."""
+        return await self._run_authenticated(lambda: self.set_region(region_id))
+
     async def get_district_schedule(
         self,
         district: str | int,
@@ -350,8 +358,7 @@ class AsyncEntsorgungClient(_BaseEntsorgungClient):
         """Resolve a district, select it server-side, and return filtered schedules."""
         regions = await self.list_regions()
         region = resolve_district(district, regions)
-        region_id = int(region["id"])
-        await self._run_authenticated(lambda: self.set_region(region_id))
+        await self.select_region(int(region["id"]))
         schedule_resp = await self.get_schedules()
         schedules = filter_schedules(
             schedule_resp.get("data", []),
