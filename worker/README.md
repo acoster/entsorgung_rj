@@ -28,7 +28,7 @@ returns `502`. Unknown districts return `404`.
 
 ```bash
 cd worker
-npm install -D wrangler
+npm install
 npx wrangler kv namespace create CACHE   # paste the id into wrangler.toml
 npx wrangler deploy
 ```
