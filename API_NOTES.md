@@ -18,7 +18,7 @@ In `v1.4.8`, the backend switched to **lowercase hyphenated** keys/headers and a
 
 | Header / Field | Value |
 |---|---|
-| `anonymous-user-id` | Any client-generated UUID v4 (e.g. `3d83c7ea-7713-4672-99ee-c3ba7abb162c`) |
+| `anonymous-user-id` | Any client-generated UUID v4 (e.g. `123e4567-e89b-4d3a-a456-426614174000`) |
 | `device-token` | FCM registration token in the mobile app, or any non-empty string (e.g. `cli-<uuid>`)—the backend does **not** validate it against Firebase |
 
 ### Required flow to fetch a district's calendar

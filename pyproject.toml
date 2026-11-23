@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "entsorgung-rj"
+version = "0.1.0"
+description = "Unofficial client and iCalendar exporter for the Rapperswil-Jona waste collection calendar"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Alex Coster" }]
+requires-python = ">=3.10"
+dependencies = []
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/acoster/entsorgung_rj"
+
+[project.scripts]
+entsorgung-rj = "entsorgung_rj.cli:main"
+
+[tool.setuptools]
+packages = ["entsorgung_rj"]

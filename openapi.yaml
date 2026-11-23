@@ -5,9 +5,8 @@ info:
   description: >
     Unofficial OpenAPI specification for the Rapperswil-Jona waste disposal
     calendar backend (`ch.adaptit.entsorgungrj`), reverse-engineered from the
-    Flutter mobile application.
-  contact:
-    email: entsorgungskalender@rj.sg.ch
+    Flutter mobile application. Not affiliated with or endorsed by AdaptIT
+    GmbH or Stadt Rapperswil-Jona.
 
 servers:
   - url: https://wastedisposalschedule-be.adaptit.ch/api/v1
@@ -38,11 +37,11 @@ paths:
               properties:
                 device-token:
                   type: string
-                  example: cli-3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                  example: cli-123e4567-e89b-4d3a-a456-426614174000
                 anonymous-user-id:
                   type: string
                   format: uuid
-                  example: 3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                  example: 123e4567-e89b-4d3a-a456-426614174000
       responses:
         "200":
           description: Registration succeeded
@@ -93,11 +92,11 @@ paths:
               properties:
                 device-token:
                   type: string
-                  example: cli-3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                  example: cli-123e4567-e89b-4d3a-a456-426614174000
                 anonymous-user-id:
                   type: string
                   format: uuid
-                  example: 3d83c7ea-7713-4672-99ee-c3ba7abb162c
+                  example: 123e4567-e89b-4d3a-a456-426614174000
                 region-id:
                   type: integer
                   minimum: 1
