@@ -7,6 +7,7 @@ For local CLI identity caching, see `entsorgung_rj.storage` and `entsorgung_rj.c
 from entsorgung_rj.client import BASE_URL, AsyncEntsorgungClient, EntsorgungClient
 from entsorgung_rj.ical import (
     ICS_PRODID,
+    calendar_filename,
     escape_ics_text,
     format_ics,
     format_schedule_ics,
@@ -50,6 +51,7 @@ __all__ = [
     "HttpResponse",
     "SyncTransport",
     "WasteCategory",
+    "calendar_filename",
     "escape_ics_text",
     "filter_by_categories",
     "filter_schedules",

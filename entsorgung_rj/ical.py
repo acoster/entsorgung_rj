@@ -5,9 +5,11 @@ from __future__ import annotations
 import datetime as dt
 from typing import TYPE_CHECKING, Any
 
-from entsorgung_rj.models import get_category_name, parse_schedule_date
+from entsorgung_rj.models import WasteCategory, get_category_name, parse_schedule_date
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from entsorgung_rj.models import DistrictSchedule
 
 ICS_PRODID = "-//Entsorgung RJ//Rapperswil-Jona//EN"
@@ -22,6 +24,21 @@ def escape_ics_text(value: str) -> str:
         .replace("\r\n", r"\n")
         .replace("\n", r"\n")
     )
+
+
+def calendar_filename(
+    district_id: int,
+    categories: Iterable[WasteCategory] | None = None,
+) -> str:
+    """Suggested download name, e.g. `entsorgung-kreis-2-kehricht-papier.ics`.
+
+    Categories are listed in ID order; none or all of them add no suffix.
+    """
+    selected = set(categories or ())
+    parts = [f"entsorgung-kreis-{district_id}"]
+    if selected != set(WasteCategory):
+        parts.extend(c.name.lower() for c in sorted(selected))
+    return "-".join(parts) + ".ics"
 
 
 def format_ics(

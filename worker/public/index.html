@@ -177,6 +177,7 @@
     <div class="actions">
       <a class="button primary" id="subscribe">📅 <span data-i18n="subscribe">Abonnieren</span></a>
       <a class="button" id="google" target="_blank" rel="noopener" data-i18n="google">Google Kalender</a>
+      <!-- File name comes from the Worker's Content-Disposition header. -->
       <a class="button" id="download" download data-i18n="download">Herunterladen (.ics)</a>
     </div>
     <div class="url">
@@ -274,7 +275,6 @@
         + "Die Termine werden alle paar Stunden aktualisiert.",
       source: "Quellcode auf GitHub",
       district: (n) => `Kreis ${n}`,
-      filename: (n) => `entsorgung-kreis-${n}.ics`,
       cat: { 1: "Karton", 2: "Kehricht", 3: "Grüngut", 4: "Metall", 5: "Papier" },
     },
     en: {
@@ -314,7 +314,6 @@
         + "Dates are refreshed every few hours.",
       source: "Source code on GitHub",
       district: (n) => `Kreis ${n}`,
-      filename: (n) => `waste-collection-kreis-${n}.ics`,
       cat: { 1: "Cardboard", 2: "Household waste", 3: "Green waste", 4: "Metal", 5: "Paper" },
     },
   };
@@ -382,7 +381,6 @@
     els.subscribe.href = webcalUrl;
     els.google.href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(webcalUrl);
     els.download.href = httpsUrl;
-    els.download.setAttribute("download", t("filename")(n));
     els.url.value = httpsUrl;
     els.copy.textContent = t("copy");
     document.querySelectorAll(".district-name").forEach((el) => {

@@ -28,6 +28,7 @@ from entsorgung_rj.calendar_service import (
     DistrictCalendarService,
     DistrictNotFoundError,
 )
+from entsorgung_rj.ical import calendar_filename
 from entsorgung_rj.models import ApiError, parse_categories
 
 _PATH_RE = re.compile(r"^/(\d{1,3})\.ics$")
@@ -103,7 +104,9 @@ class Default(WorkerEntrypoint):
 
         headers = {
             "Content-Type": "text/calendar; charset=utf-8",
-            "Content-Disposition": f'inline; filename="kreis-{district_id}.ics"',
+            "Content-Disposition": (
+                f'inline; filename="{calendar_filename(district_id, categories)}"'
+            ),
             "Cache-Control": f"public, max-age={min(calendar_ttl, 3600)}",
             "X-Calendar-Cache": "stale" if result.stale else "ok",
         }
