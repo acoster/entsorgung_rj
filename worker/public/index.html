@@ -6,13 +6,6 @@
 <title>Entsorgungskalender Rapperswil-Jona</title>
 <meta name="description" content="Abfuhrtermine von Rapperswil-Jona als Kalender-Abo (iCal) für jeden Kreis.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>">
-<!-- Google Tag Manager -->
-<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-KP7L33DF"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-</script>
 <style>
   :root {
     color-scheme: light dark;
@@ -230,7 +223,8 @@
   <footer>
     <span data-i18n="disclaimer">Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH.
     Angaben ohne Gewähr; massgebend ist der offizielle Entsorgungskalender.
-    Die Termine werden alle paar Stunden aktualisiert.</span>
+    Die Termine werden alle paar Stunden aktualisiert.
+    Keine Cookies; anonyme Zugriffsstatistik über Cloudflare.</span>
     · <a href="https://github.com/acoster/entsorgung_rj" data-i18n="source">Quellcode auf GitHub</a>
   </footer>
 </main>
@@ -279,7 +273,8 @@
         + "rel=\"noopener\">Stadt Rapperswil-Jona</a>.",
       disclaimer: "Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH. "
         + "Angaben ohne Gewähr; massgebend ist der offizielle Entsorgungskalender. "
-        + "Die Termine werden alle paar Stunden aktualisiert.",
+        + "Die Termine werden alle paar Stunden aktualisiert. "
+        + "Keine Cookies; anonyme Zugriffsstatistik über Cloudflare.",
       source: "Quellcode auf GitHub",
       district: (n) => `Kreis ${n}`,
       cat: { 1: "Karton", 2: "Kehricht", 3: "Grüngut", 4: "Metall", 5: "Papier" },
@@ -318,7 +313,8 @@
         + "rel=\"noopener\">City of Rapperswil-Jona</a>. Event names in the calendar are in German.",
       disclaimer: "Unofficial project, not affiliated with the City of Rapperswil-Jona or AdaptIT GmbH. "
         + "No guarantee of accuracy; the official waste collection calendar is authoritative. "
-        + "Dates are refreshed every few hours.",
+        + "Dates are refreshed every few hours. "
+        + "No cookies; anonymous usage statistics via Cloudflare.",
       source: "Source code on GitHub",
       district: (n) => `Kreis ${n}`,
       cat: { 1: "Cardboard", 2: "Household waste", 3: "Green waste", 4: "Metal", 5: "Paper" },
@@ -327,16 +323,6 @@
   let lang = "de";
   let current = 0;
   const t = (key) => STRINGS[lang][key];
-
-  // UI events for Google Tag Manager (use "Custom Event" triggers in GTM).
-  function track(event, params = {}) {
-    window.dataLayer.push({ event, ...params });
-  }
-  const feedParams = () => ({
-    district: current,
-    categories: selectedCategories().join(",") || "all",
-    language: lang,
-  });
   const fieldset = document.getElementById("districts");
   const panel = document.getElementById("panel");
   const els = Object.fromEntries(
@@ -361,7 +347,6 @@
         localStorage.setItem("categories", selectedCategories().join(","));
       } catch {}
       if (current) select(current, false);
-      track("change_categories", feedParams());
     });
     return input;
   });
@@ -385,10 +370,7 @@
       htmlFor: `k${n}`, className: "district-label",
     });
     label.dataset.n = String(n);
-    input.addEventListener("change", () => {
-      select(n, true);
-      track("select_district", feedParams());
-    });
+    input.addEventListener("change", () => select(n, true));
     fieldset.append(input, label);
   }
 
@@ -414,14 +396,7 @@
     }
   }
 
-  for (const action of ["subscribe", "google", "download"]) {
-    els[action].addEventListener("click", () => {
-      track("calendar_action", { action, ...feedParams() });
-    });
-  }
-
   els.copy.addEventListener("click", async () => {
-    track("calendar_action", { action: "copy", ...feedParams() });
     try {
       await navigator.clipboard.writeText(els.url.value);
     } catch {
@@ -459,11 +434,7 @@
   }
 
   document.querySelectorAll(".lang button").forEach((b) => {
-    b.addEventListener("click", () => {
-      if (b.dataset.lang === lang) return;
-      setLang(b.dataset.lang, true);
-      track("change_language", { language: lang });
-    });
+    b.addEventListener("click", () => setLang(b.dataset.lang, true));
   });
 
   // Language: ?lang=en|de, then the saved choice, then the browser's preference.

@@ -13,6 +13,7 @@ Importing `entsorgung_rj` is filesystem-free and safe to use in serverless runti
 | `entsorgung_rj.client` | Sync (`EntsorgungClient`) and async (`AsyncEntsorgungClient`) API clients |
 | `entsorgung_rj.ical` | Pure RFC 5545 `.ics` calendar serialization (`format_ics`, `format_schedule_ics`) |
 | `entsorgung_rj.calendar_service` | KV-cached per-district `.ics` service used by the Cloudflare Worker (`DistrictCalendarService`) |
+| `entsorgung_rj.feed_stats` | Anonymous Workers Analytics Engine data points for `.ics` feed requests |
 | `entsorgung_rj.formatters` | Terminal table and JSON output formatters |
 | `entsorgung_rj.storage` | Local `~/.config/entsorgung_rj/client.json` identity cache (CLI / local only) |
 | `entsorgung_rj.cli` | Command-line interface (`python3 -m entsorgung_rj`) |
