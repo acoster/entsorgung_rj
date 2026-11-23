@@ -134,75 +134,96 @@
   summary { cursor: pointer; font-weight: 500; }
   details ol { margin: .75rem 0 .25rem; padding-left: 1.25rem; }
   footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+  .lang { display: flex; justify-content: flex-end; gap: .25rem; margin-bottom: .5rem; }
+  .lang button {
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border: 1px solid var(--border);
+    border-radius: .4rem;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .lang button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text);
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>♻️ Entsorgungskalender Rapperswil-Jona</h1>
-  <p class="lead">
+  <nav class="lang" aria-label="Sprache / Language">
+    <button type="button" data-lang="de" lang="de">DE</button>
+    <button type="button" data-lang="en" lang="en">EN</button>
+  </nav>
+  <h1>♻️ <span data-i18n="title">Entsorgungskalender Rapperswil-Jona</span></h1>
+  <p class="lead" data-i18n="lead">
     Die Abfuhrtermine für Kehricht, Papier, Karton, Grüngut und Metall als Kalender-Abo.
     Die Termine erscheinen direkt in Ihrem Kalender und aktualisieren sich automatisch.
   </p>
 
   <fieldset class="districts" id="districts">
-    <legend>1. Kreis wählen</legend>
+    <legend data-i18n="pickDistrict">1. Kreis wählen</legend>
   </fieldset>
 
   <section class="panel" id="panel" hidden aria-live="polite">
-    <h2>2. Kalender für <span id="district-name"></span> hinzufügen</h2>
+    <h2 data-i18n-html="addCalendar">2. Kalender für <span class="district-name"></span> hinzufügen</h2>
     <fieldset class="categories" id="categories">
-      <legend>Abfallarten</legend>
+      <legend data-i18n="categories">Abfallarten</legend>
     </fieldset>
     <div class="actions">
-      <a class="button primary" id="subscribe">📅 Abonnieren</a>
-      <a class="button" id="google" target="_blank" rel="noopener">Google Kalender</a>
-      <a class="button" id="download" download>Herunterladen (.ics)</a>
+      <a class="button primary" id="subscribe">📅 <span data-i18n="subscribe">Abonnieren</span></a>
+      <a class="button" id="google" target="_blank" rel="noopener" data-i18n="google">Google Kalender</a>
+      <a class="button" id="download" download data-i18n="download">Herunterladen (.ics)</a>
     </div>
     <div class="url">
-      <input id="url" type="text" readonly aria-label="Kalender-Adresse">
+      <input id="url" type="text" readonly aria-label="Kalender-Adresse" data-i18n-aria="urlLabel">
       <button class="button" id="copy" type="button">Kopieren</button>
     </div>
-    <p class="hint">
+    <p class="hint" data-i18n="hint">
       «Abonnieren» öffnet die Kalender-App auf iPhone, Mac und in Outlook.
       Ein Abo bleibt aktuell, eine heruntergeladene Datei nicht.
     </p>
   </section>
 
-  <h2>Hilfe</h2>
+  <h2 data-i18n="help">Hilfe</h2>
   <details>
-    <summary>Android / Google Kalender</summary>
-    <ol>
+    <summary data-i18n="helpGoogle">Android / Google Kalender</summary>
+    <ol data-i18n-html="helpGoogleSteps">
       <li>Auf «Google Kalender» klicken und das Abo bestätigen (am besten am Computer).</li>
       <li>Der Kalender erscheint danach auch in der Google-Kalender-App auf dem Handy.</li>
     </ol>
   </details>
   <details>
-    <summary>iPhone, iPad und Mac</summary>
-    <ol>
+    <summary data-i18n="helpApple">iPhone, iPad und Mac</summary>
+    <ol data-i18n-html="helpAppleSteps">
       <li>Auf «Abonnieren» tippen.</li>
       <li>Das Abonnement in der Kalender-App bestätigen.</li>
     </ol>
   </details>
   <details>
-    <summary>Outlook und andere Kalender</summary>
-    <ol>
+    <summary data-i18n="helpOther">Outlook und andere Kalender</summary>
+    <ol data-i18n-html="helpOtherSteps">
       <li>Die Adresse oben kopieren.</li>
       <li>Im Kalender «Kalender hinzufügen» → «Aus dem Internet» bzw. «Per URL abonnieren» wählen und die Adresse einfügen.</li>
     </ol>
   </details>
   <details>
-    <summary>Welcher Kreis bin ich?</summary>
-    <p style="margin: .75rem 0 .25rem">
+    <summary data-i18n="helpDistrict">Welcher Kreis bin ich?</summary>
+    <p style="margin: .75rem 0 .25rem" data-i18n-html="helpDistrictText">
       Die Einteilung der Kreise finden Sie im offiziellen Entsorgungskalender bzw. der App
       «Entsorgung RJ» der <a href="https://www.rapperswil-jona.ch" target="_blank" rel="noopener">Stadt Rapperswil-Jona</a>.
     </p>
   </details>
 
   <footer>
-    Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH.
+    <span data-i18n="disclaimer">Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH.
     Angaben ohne Gewähr; massgebend ist der offizielle Entsorgungskalender.
-    Die Termine werden alle paar Stunden aktualisiert.
-    · <a href="https://github.com/acoster/entsorgung_rj">Quellcode auf GitHub</a>
+    Die Termine werden alle paar Stunden aktualisiert.</span>
+    · <a href="https://github.com/acoster/entsorgung_rj" data-i18n="source">Quellcode auf GitHub</a>
   </footer>
 </main>
 
@@ -210,24 +231,112 @@
 (() => {
   const DISTRICTS = 8;
   // IDs match `WasteCategory` in entsorgung_rj/models.py.
-  const CATEGORIES = [
-    [2, "Kehricht"], [5, "Papier"], [1, "Karton"], [3, "Grüngut"], [4, "Metall"],
-  ];
+  // Display order: most frequent collections first.
+  const CATEGORIES = [2, 5, 1, 3, 4];
+
+  // German is the default in the HTML; these strings replace it at runtime.
+  // Keys used with data-i18n-html may contain markup.
+  const STRINGS = {
+    de: {
+      pageTitle: "Entsorgungskalender Rapperswil-Jona",
+      description: "Abfuhrtermine von Rapperswil-Jona als Kalender-Abo (iCal) für jeden Kreis.",
+      title: "Entsorgungskalender Rapperswil-Jona",
+      lead: "Die Abfuhrtermine für Kehricht, Papier, Karton, Grüngut und Metall als Kalender-Abo. "
+        + "Die Termine erscheinen direkt in Ihrem Kalender und aktualisieren sich automatisch.",
+      pickDistrict: "1. Kreis wählen",
+      addCalendar: '2. Kalender für <span class="district-name"></span> hinzufügen',
+      categories: "Abfallarten",
+      subscribe: "Abonnieren",
+      google: "Google Kalender",
+      download: "Herunterladen (.ics)",
+      urlLabel: "Kalender-Adresse",
+      copy: "Kopieren",
+      copied: "Kopiert ✓",
+      hint: "«Abonnieren» öffnet die Kalender-App auf iPhone, Mac und in Outlook. "
+        + "Ein Abo bleibt aktuell, eine heruntergeladene Datei nicht.",
+      help: "Hilfe",
+      helpGoogle: "Android / Google Kalender",
+      helpGoogleSteps: "<li>Auf «Google Kalender» klicken und das Abo bestätigen (am besten am Computer).</li>"
+        + "<li>Der Kalender erscheint danach auch in der Google-Kalender-App auf dem Handy.</li>",
+      helpApple: "iPhone, iPad und Mac",
+      helpAppleSteps: "<li>Auf «Abonnieren» tippen.</li>"
+        + "<li>Das Abonnement in der Kalender-App bestätigen.</li>",
+      helpOther: "Outlook und andere Kalender",
+      helpOtherSteps: "<li>Die Adresse oben kopieren.</li>"
+        + "<li>Im Kalender «Kalender hinzufügen» → «Aus dem Internet» bzw. «Per URL abonnieren» "
+        + "wählen und die Adresse einfügen.</li>",
+      helpDistrict: "Welcher Kreis bin ich?",
+      helpDistrictText: "Die Einteilung der Kreise finden Sie im offiziellen Entsorgungskalender bzw. der App "
+        + "«Entsorgung RJ» der <a href=\"https://www.rapperswil-jona.ch\" target=\"_blank\" "
+        + "rel=\"noopener\">Stadt Rapperswil-Jona</a>.",
+      disclaimer: "Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH. "
+        + "Angaben ohne Gewähr; massgebend ist der offizielle Entsorgungskalender. "
+        + "Die Termine werden alle paar Stunden aktualisiert.",
+      source: "Quellcode auf GitHub",
+      district: (n) => `Kreis ${n}`,
+      filename: (n) => `entsorgung-kreis-${n}.ics`,
+      cat: { 1: "Karton", 2: "Kehricht", 3: "Grüngut", 4: "Metall", 5: "Papier" },
+    },
+    en: {
+      pageTitle: "Rapperswil-Jona Waste Collection Calendar",
+      description: "Rapperswil-Jona waste collection dates as a calendar subscription (iCal) for every district.",
+      title: "Rapperswil-Jona Waste Collection Calendar",
+      lead: "Collection dates for household waste, paper, cardboard, green waste and metal as a calendar "
+        + "subscription. The dates appear right in your calendar and update automatically.",
+      pickDistrict: "1. Choose your district (Kreis)",
+      addCalendar: '2. Add the calendar for <span class="district-name"></span>',
+      categories: "Waste types",
+      subscribe: "Subscribe",
+      google: "Google Calendar",
+      download: "Download (.ics)",
+      urlLabel: "Calendar address",
+      copy: "Copy",
+      copied: "Copied ✓",
+      hint: "“Subscribe” opens the calendar app on iPhone, Mac and in Outlook. "
+        + "A subscription stays up to date; a downloaded file does not.",
+      help: "Help",
+      helpGoogle: "Android / Google Calendar",
+      helpGoogleSteps: "<li>Click “Google Calendar” and confirm the subscription (ideally on a computer).</li>"
+        + "<li>The calendar then also shows up in the Google Calendar app on your phone.</li>",
+      helpApple: "iPhone, iPad and Mac",
+      helpAppleSteps: "<li>Tap “Subscribe”.</li>"
+        + "<li>Confirm the subscription in the Calendar app.</li>",
+      helpOther: "Outlook and other calendars",
+      helpOtherSteps: "<li>Copy the address above.</li>"
+        + "<li>In your calendar, choose “Add calendar” → “From internet” or “Subscribe from web” "
+        + "and paste the address.</li>",
+      helpDistrict: "Which district am I in?",
+      helpDistrictText: "The district map is in the official waste collection calendar and in the "
+        + "“Entsorgung RJ” app of the <a href=\"https://www.rapperswil-jona.ch\" target=\"_blank\" "
+        + "rel=\"noopener\">City of Rapperswil-Jona</a>. Event names in the calendar are in German.",
+      disclaimer: "Unofficial project, not affiliated with the City of Rapperswil-Jona or AdaptIT GmbH. "
+        + "No guarantee of accuracy; the official waste collection calendar is authoritative. "
+        + "Dates are refreshed every few hours.",
+      source: "Source code on GitHub",
+      district: (n) => `Kreis ${n}`,
+      filename: (n) => `waste-collection-kreis-${n}.ics`,
+      cat: { 1: "Cardboard", 2: "Household waste", 3: "Green waste", 4: "Metal", 5: "Paper" },
+    },
+  };
+  let lang = "de";
   let current = 0;
+  const t = (key) => STRINGS[lang][key];
   const fieldset = document.getElementById("districts");
   const panel = document.getElementById("panel");
   const els = Object.fromEntries(
-    ["district-name", "subscribe", "google", "download", "url", "copy"]
+    ["subscribe", "google", "download", "url", "copy"]
       .map((id) => [id, document.getElementById(id)]),
   );
 
   const catFieldset = document.getElementById("categories");
-  const catInputs = CATEGORIES.map(([id, name]) => {
+  const catNames = {};
+  const catInputs = CATEGORIES.map((id) => {
     const input = Object.assign(document.createElement("input"), {
       type: "checkbox", value: String(id), checked: true,
     });
     const label = document.createElement("label");
-    label.append(input, name);
+    catNames[id] = document.createElement("span");
+    label.append(input, catNames[id]);
     catFieldset.append(label);
     input.addEventListener("change", () => {
       // Keep at least one category selected; none would be an empty calendar.
@@ -256,8 +365,9 @@
       type: "radio", name: "district", id: `k${n}`, value: String(n),
     });
     const label = Object.assign(document.createElement("label"), {
-      htmlFor: `k${n}`, textContent: `Kreis ${n}`,
+      htmlFor: `k${n}`, className: "district-label",
     });
+    label.dataset.n = String(n);
     input.addEventListener("change", () => select(n, true));
     fieldset.append(input, label);
   }
@@ -269,13 +379,15 @@
     const httpsUrl = `${location.origin}/${n}.ics${query}`;
     const webcalUrl = httpsUrl.replace(/^https?:/, "webcal:");
     document.getElementById(`k${n}`).checked = true;
-    els["district-name"].textContent = `Kreis ${n}`;
     els.subscribe.href = webcalUrl;
     els.google.href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(webcalUrl);
     els.download.href = httpsUrl;
-    els.download.setAttribute("download", `entsorgung-kreis-${n}.ics`);
+    els.download.setAttribute("download", t("filename")(n));
     els.url.value = httpsUrl;
-    els.copy.textContent = "Kopieren";
+    els.copy.textContent = t("copy");
+    document.querySelectorAll(".district-name").forEach((el) => {
+      el.textContent = t("district")(n);
+    });
     panel.hidden = false;
     if (remember) {
       history.replaceState(null, "", `#kreis-${n}`);
@@ -290,9 +402,50 @@
       els.url.select();
       document.execCommand("copy");
     }
-    els.copy.textContent = "Kopiert ✓";
+    els.copy.textContent = t("copied");
   });
   els.url.addEventListener("focus", () => els.url.select());
+
+  function setLang(next, remember) {
+    lang = STRINGS[next] ? next : "de";
+    document.documentElement.lang = lang;
+    document.title = t("pageTitle");
+    document.querySelector('meta[name="description"]').content = t("description");
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+      el.innerHTML = t(el.dataset.i18nHtml);
+    });
+    document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
+      el.setAttribute("aria-label", t(el.dataset.i18nAria));
+    });
+    document.querySelectorAll(".district-label").forEach((el) => {
+      el.textContent = t("district")(el.dataset.n);
+    });
+    CATEGORIES.forEach((id) => { catNames[id].textContent = t("cat")[id]; });
+    document.querySelectorAll(".lang button").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+    });
+    els.copy.textContent = t("copy");
+    if (current) select(current, false);
+    if (remember) { try { localStorage.setItem("lang", lang); } catch {} }
+  }
+
+  document.querySelectorAll(".lang button").forEach((b) => {
+    b.addEventListener("click", () => setLang(b.dataset.lang, true));
+  });
+
+  // Language: ?lang=en|de, then the saved choice, then the browser's preference.
+  let initialLang = new URLSearchParams(location.search).get("lang");
+  if (!STRINGS[initialLang]) { try { initialLang = localStorage.getItem("lang"); } catch {} }
+  if (!STRINGS[initialLang]) {
+    const prefs = navigator.languages && navigator.languages.length
+      ? navigator.languages : [navigator.language || "de"];
+    const match = prefs.map((l) => l.slice(0, 2).toLowerCase()).find((l) => STRINGS[l]);
+    initialLang = match || "en";
+  }
+  setLang(initialLang, false);
 
   let initial = Number((location.hash.match(/^#kreis-(\d+)$/) || [])[1]);
   if (!initial) { try { initial = Number(localStorage.getItem("kreis")); } catch {} }

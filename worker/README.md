@@ -3,7 +3,7 @@
 Serves the Rapperswil-Jona waste collection calendar for each district as iCalendar:
 
 ```
-GET /                    # landing page: pick a district, subscribe / download / copy URL
+GET /                    # landing page (German/English): pick a district, subscribe / download / copy URL
 GET /1.ics … /8.ics      # Kreis 1 … Kreis 8
 GET /2.ics?categories=2,5            # only Kehricht and Papier
 GET /2.ics?categories=kehricht,papier  # same, by name
