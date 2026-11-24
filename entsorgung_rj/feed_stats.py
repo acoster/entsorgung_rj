@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 # Ordered: first match wins. Substrings are matched case-insensitively.
 _CLIENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("monitor", ("entsorgung-rj-monitor",)),
     ("google", ("google-calendar-importer", "google-calendar", "googlebot")),
     ("outlook", ("outlook", "microsoft office", "microsoft exchange", "office365")),
     ("apple", ("dataaccessd", "calendaragent")),
@@ -43,8 +44,9 @@ _APPLE_PREFIXES = ("ios/", "ipados/", "macos/", "mac os x/", "mac_os_x/")
 def classify_client(user_agent: str | None) -> str:
     """Map a User-Agent to a coarse client family.
 
-    Returns one of `google`, `outlook`, `apple`, `thunderbird`, `davx5`,
-    `browser`, `other` or `unknown` (no User-Agent).
+    Returns one of `monitor` (our own health check), `google`, `outlook`,
+    `apple`, `thunderbird`, `davx5`, `browser`, `other` or `unknown`
+    (no User-Agent).
     """
     if not user_agent:
         return "unknown"
