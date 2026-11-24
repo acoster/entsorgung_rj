@@ -24,6 +24,9 @@ class TestFeedStats(unittest.TestCase):
             "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) "
             "AppleWebKit/605.1.15 CriOS/131.0 Mobile/15E148 Safari/604.1": "browser",
             "curl/8.5.0": "other",
+            "entsorgung-rj-monitor/1.0 (+https://github.com/acoster/entsorgung_rj)": (
+                "monitor"
+            ),
         }
         for ua, expected in cases.items():
             with self.subTest(ua=ua):

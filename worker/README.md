@@ -82,6 +82,30 @@ curl "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/analytics_engine
           ORDER BY requests DESC"
 ```
 
+## Monitoring
+
+[`.github/workflows/monitor.yml`](../.github/workflows/monitor.yml) runs
+[`tools/check_instance.py`](../tools/check_instance.py) against the live instance every 6
+hours (and on demand from the Actions tab). It fails, and GitHub emails you, when:
+
+- the landing page or any district feed doesn't load or isn't a valid calendar;
+- a feed is served from a stale cache (`X-Calendar-Cache: stale`, i.e. the city's backend
+  has been failing for longer than the 4-hour refresh);
+- a district has no collection in the next 21 days (e.g. the backend's data or format changed);
+- the category filter, download name, `400` for unknown categories or `404` for unknown
+  districts stop working.
+
+Server errors are retried twice, 20 s apart, so a single upstream blip doesn't alert. The
+checker's requests show up in the feed stats as client `monitor`. Run it locally with:
+
+```bash
+python -m tools.check_instance https://entsorgung-rappi.coster.li
+```
+
+To monitor another deployment, set a repository variable `INSTANCE_URL`. GitHub pauses
+scheduled workflows after 60 days without repository activity; it emails a warning first,
+and you can re-enable the workflow from the Actions tab.
+
 ## Setup
 
 ```bash

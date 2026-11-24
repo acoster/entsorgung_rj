@@ -1,0 +1,32 @@
+name: Monitor live instance
+
+# End-to-end check of the deployed calendar Worker (see tools/check_instance.py).
+# A failed scheduled run makes GitHub email whoever last changed this schedule
+# (Settings → Notifications → Actions controls this).
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"  # every 6 hours, off the top of the hour
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Check instance
+        env:
+          # Override with a repository variable to monitor another deployment.
+          INSTANCE_URL: ${{ vars.INSTANCE_URL || 'https://entsorgung-rappi.coster.li' }}
+        run: python -m tools.check_instance "$INSTANCE_URL"
