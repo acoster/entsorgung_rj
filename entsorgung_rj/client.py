@@ -28,7 +28,9 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
 BASE_URL = "https://wastedisposalschedule-be.adaptit.ch/api/v1/"
-USER_AGENT = "Dart/3.1 (dart:io)"
+# Identify honestly (rather than mimicking the official app) so the backend's
+# operators can see what this client is and how to reach its maintainer.
+USER_AGENT = "entsorgung-rj/0.1 (+https://github.com/acoster/entsorgung_rj)"
 
 _REREGISTER_STATUSES = frozenset(
     {http.HTTPStatus.BAD_REQUEST, http.HTTPStatus.UNAUTHORIZED},
