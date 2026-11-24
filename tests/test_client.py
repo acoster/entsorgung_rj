@@ -52,6 +52,10 @@ class TestSyncEntsorgungClient(unittest.TestCase):
         self.assertTrue(req.url.endswith("/register-device"))
         self.assertNotIn("anonymous-user-id", req.headers)
         self.assertNotIn("device-token", req.headers)
+        self.assertEqual(
+            req.headers["User-Agent"],
+            "entsorgung-rj/0.1 (+https://github.com/acoster/entsorgung_rj)",
+        )
         assert req.body is not None
         self.assertEqual(
             json.loads(req.body.decode("utf-8")),
