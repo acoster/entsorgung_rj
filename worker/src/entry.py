@@ -5,7 +5,8 @@ Routes:
     GET /<district-id>.ics?categories=1,5     only the given waste categories
 
 Each GET of a feed is also counted in Workers Analytics Engine (`FEED_STATS`
-binding, see `entsorgung_rj.feed_stats`), without IPs or full user agents.
+binding, see `entsorgung_rj.feed_stats`), without IPs or full user agents; only
+the client's ASN and country are taken from `request.cf`.
 
 `categories` takes comma-separated IDs or names of `WasteCategory` (1=karton,
 2=kehricht, 3=gruengut, 4=metall, 5=papier) and may be repeated. Omitted or
@@ -66,6 +67,22 @@ def _env_int(env, name: str, default: int) -> int:
         return int(raw) if raw is not None else default
     except (TypeError, ValueError):
         return default
+
+
+def _cf_property(request, name: str):
+    """Read one `request.cf` property (ASN, country, ...), or None if unavailable.
+
+    The Python SDK's `Request` wraps the JS request; depending on the SDK version
+    `cf` sits on the wrapper or on the underlying `js_object`. Missing properties
+    (e.g. under local dev) come back as None.
+    """
+    cf = getattr(request, "cf", None)
+    if cf is None:
+        cf = getattr(getattr(request, "js_object", None), "cf", None)
+    if cf is None:
+        return None
+    value = getattr(cf, name, None)
+    return value if isinstance(value, (int, float, str)) else None
 
 
 def _text(body: str, status: int) -> Response:
@@ -138,6 +155,9 @@ class Default(WorkerEntrypoint):
                 user_agent=request.headers.get("User-Agent"),
                 cache=cache,
                 status=int(status),
+                asn=_cf_property(request, "asn"),
+                as_organization=_cf_property(request, "asOrganization"),
+                country=_cf_property(request, "country"),
             )
             dataset.writeDataPoint(to_js(point, dict_converter=Object.fromEntries))
         except Exception as exc:  # noqa: BLE001

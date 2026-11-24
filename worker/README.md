@@ -61,8 +61,10 @@ Enable it in the Cloudflare dashboard under *Analytics & Logs → Web Analytics 
 **Calendar feeds: Workers Analytics Engine.** Every `GET /<id>.ics` writes one data point to
 the `entsorgung_rj_feeds` dataset (`FEED_STATS` binding in `wrangler.toml`). It records
 the district, category filter, a coarse calendar-client family (`apple`, `google`,
-`outlook`, `browser`, …), cache state and HTTP status. It never records IPs or full user
-agents; see [`entsorgung_rj/feed_stats.py`](../entsorgung_rj/feed_stats.py) for the field
+`outlook`, `browser`, …), cache state, HTTP status, and the client's network (ASN and
+AS name, from `request.cf`) and country. The ASN mostly separates cloud fetchers (Google
+AS15169, Microsoft AS8075, Apple AS714) from devices polling directly over a residential
+ISP. It never records IPs or full user agents; see [`entsorgung_rj/feed_stats.py`](../entsorgung_rj/feed_stats.py) for the field
 layout. Writes are fire-and-forget, so a failure never affects the feed. Remove the binding
 to turn stats off.
 
@@ -79,6 +81,20 @@ curl "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/analytics_engine
           FROM entsorgung_rj_feeds
           WHERE timestamp > NOW() - INTERVAL '7' DAY AND blob5 = '200'
           GROUP BY district, categories, client
+          ORDER BY requests DESC"
+```
+
+Which networks and countries the feeds are fetched from (rows written before these fields
+existed have empty `blob6`–`blob8`):
+
+```bash
+curl "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/analytics_engine/sql" \
+  -H "Authorization: Bearer $API_TOKEN" \
+  --data "SELECT blob6 AS asn, blob7 AS network, blob8 AS country, blob3 AS client,
+                 SUM(_sample_interval) AS requests
+          FROM entsorgung_rj_feeds
+          WHERE timestamp > NOW() - INTERVAL '7' DAY AND blob6 != ''
+          GROUP BY asn, network, country, client
           ORDER BY requests DESC"
 ```
 

@@ -2,8 +2,10 @@
 
 Builds Workers Analytics Engine data points for each feed request. Nothing
 identifying is recorded: no IP address, no full user agent, only the district,
-the category filter, a coarse calendar-client family, the cache state and the
-HTTP status.
+the category filter, a coarse calendar-client family, the cache state, the
+HTTP status and the network (ASN) and country the request came from. The ASN
+mostly tells cloud fetchers (Google, Microsoft, Apple) apart from devices
+polling directly over a residential ISP.
 
 Data point layout (`dataset` configured in `worker/wrangler.toml`):
 
@@ -15,6 +17,9 @@ Data point layout (`dataset` configured in `worker/wrangler.toml`):
 | `blob3`   | client family (see `classify_client`)                      |
 | `blob4`   | cache: `fresh`, `stale` or `none`                          |
 | `blob5`   | HTTP status code                                           |
+| `blob6`   | client ASN (`15169`), or `unknown`                         |
+| `blob7`   | AS organisation (`Google LLC`), or `unknown`               |
+| `blob8`   | ISO 3166-1 alpha-2 country (`CH`), or `unknown`            |
 | `double1` | always 1 (sum `_sample_interval` to count requests)        |
 """
 
@@ -67,6 +72,28 @@ def categories_label(categories: Iterable[WasteCategory] | None) -> str:
     return ",".join(map(str, ids)) if ids else "all"
 
 
+_AS_ORG_MAX = 96  # Analytics Engine caps total blob size; AS names are short anyway
+
+
+def _asn_label(asn: int | str | None) -> str:
+    try:
+        value = int(asn) if asn is not None else 0
+    except (TypeError, ValueError):
+        return "unknown"
+    return str(value) if value > 0 else "unknown"
+
+
+def _as_org_label(name: str | None) -> str:
+    text = " ".join(name.split()) if isinstance(name, str) else ""
+    return text[:_AS_ORG_MAX] if text else "unknown"
+
+
+def _country_label(country: str | None) -> str:
+    # Cloudflare uses ISO codes plus a few specials (`T1` = Tor, `XX` = unknown).
+    code = country.strip().upper() if isinstance(country, str) else ""
+    return code if code and len(code) <= 3 and code != "XX" else "unknown"
+
+
 def feed_datapoint(
     *,
     district_id: int,
@@ -74,6 +101,9 @@ def feed_datapoint(
     user_agent: str | None,
     cache: str,
     status: int,
+    asn: int | str | None = None,
+    as_organization: str | None = None,
+    country: str | None = None,
 ) -> dict[str, Any]:
     """Build an Analytics Engine data point (see the module docstring)."""
     return {
@@ -84,6 +114,9 @@ def feed_datapoint(
             classify_client(user_agent),
             cache,
             str(status),
+            _asn_label(asn),
+            _as_org_label(as_organization),
+            _country_label(country),
         ],
         "doubles": [1],
     }
