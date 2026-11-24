@@ -53,11 +53,58 @@ class TestFeedStats(unittest.TestCase):
             point,
             {
                 "indexes": ["3"],
-                "blobs": ["3", "2,5", "browser", "fresh", "200"],
+                "blobs": [
+                    "3",
+                    "2,5",
+                    "browser",
+                    "fresh",
+                    "200",
+                    "unknown",
+                    "unknown",
+                    "unknown",
+                ],
                 "doubles": [1],
             },
         )
         self.assertNotIn(ua, str(point))
+
+    def test_feed_datapoint_network_fields(self) -> None:
+        point = feed_datapoint(
+            district_id=2,
+            categories="all",
+            user_agent="Google-Calendar-Importer",
+            cache="fresh",
+            status=200,
+            asn=15169,
+            as_organization="  Google   LLC ",
+            country="us",
+        )
+        self.assertEqual(point["blobs"][5:], ["15169", "Google LLC", "US"])
+
+    def test_feed_datapoint_network_fields_fallbacks(self) -> None:
+        cases = [
+            ({"asn": 0, "as_organization": "", "country": "XX"}, ["unknown"] * 3),
+            ({"asn": "abc", "as_organization": None, "country": None}, ["unknown"] * 3),
+            (
+                {"asn": 3303.0, "as_organization": "Swisscom", "country": "T1"},
+                ["3303", "Swisscom", "T1"],
+            ),
+            (
+                {"asn": 1, "as_organization": "x" * 500, "country": "CH"},
+                ["1", "x" * 96, "CH"],
+            ),
+        ]
+        for kwargs, expected in cases:
+            with self.subTest(**kwargs):
+                point = feed_datapoint(
+                    district_id=1,
+                    categories="all",
+                    user_agent=None,
+                    cache="none",
+                    status=404,
+                    **kwargs,
+                )
+                self.assertEqual(point["blobs"][5:], expected)
 
 
 if __name__ == "__main__":
