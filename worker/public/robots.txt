@@ -1,0 +1,6 @@
+# Everything is crawlable. The .ics feeds are deliberately not disallowed:
+# calendar subscription fetchers (e.g. Google Calendar's) may honour robots.txt.
+User-agent: *
+Allow: /
+
+Sitemap: https://entsorgung-rappi.coster.li/sitemap.xml
