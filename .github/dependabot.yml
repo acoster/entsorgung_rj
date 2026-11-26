@@ -1,0 +1,24 @@
+# Dependabot version updates. The Python package has no dependencies, so only
+# the workflow actions and the Worker's tooling (Wrangler) are tracked.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directory: /worker
+    schedule:
+      # Wrangler releases several times a week; batch them into one monthly PR.
+      interval: monthly
+    groups:
+      worker:
+        patterns: ["*"]
+    commit-message:
+      prefix: worker
