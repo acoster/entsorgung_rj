@@ -113,6 +113,7 @@
     font: .9rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   .hint { color: var(--muted); font-size: .9rem; margin: .75rem 0 0; }
+  .find-district { margin: .75rem 0 0; font-size: .95rem; }
   .categories { border: 0; margin: 0 0 1rem; padding: 0; }
   .categories legend { font-weight: 500; margin-bottom: .4rem; padding: 0; }
   .categories label {
@@ -168,6 +169,9 @@
   <fieldset class="districts" id="districts">
     <legend data-i18n="pickDistrict">1. Kreis wählen</legend>
   </fieldset>
+  <p class="find-district" data-i18n-html="findDistrict">
+    Kreis unbekannt? <a href="/kreis">Mit Ihrer Adresse nachschlagen →</a>
+  </p>
 
   <section class="panel" id="panel" hidden aria-live="polite">
     <h2 data-i18n-html="addCalendar">2. Kalender für <span class="district-name"></span> hinzufügen</h2>
@@ -215,8 +219,9 @@
   <details>
     <summary data-i18n="helpDistrict">Welcher Kreis bin ich?</summary>
     <p style="margin: .75rem 0 .25rem" data-i18n-html="helpDistrictText">
-      Die Einteilung der Kreise finden Sie im offiziellen Entsorgungskalender bzw. der App
-      «Entsorgung RJ» der <a href="https://www.rapperswil-jona.ch" target="_blank" rel="noopener">Stadt Rapperswil-Jona</a>.
+      Geben Sie Ihre Adresse in der <a href="/kreis">Kreis-Suche</a> ein. Die offizielle Einteilung
+      finden Sie im Entsorgungskalender bzw. der App «Entsorgung RJ» der
+      <a href="https://www.rapperswil-jona.ch" target="_blank" rel="noopener">Stadt Rapperswil-Jona</a>.
     </p>
   </details>
 
@@ -246,6 +251,7 @@
       lead: "Die Abfuhrtermine für Kehricht, Papier, Karton, Grüngut und Metall als Kalender-Abo. "
         + "Die Termine erscheinen direkt in Ihrem Kalender und aktualisieren sich automatisch.",
       pickDistrict: "1. Kreis wählen",
+      findDistrict: 'Kreis unbekannt? <a href="/kreis">Mit Ihrer Adresse nachschlagen →</a>',
       addCalendar: '2. Kalender für <span class="district-name"></span> hinzufügen',
       categories: "Abfallarten",
       subscribe: "Abonnieren",
@@ -268,7 +274,8 @@
         + "<li>Im Kalender «Kalender hinzufügen» → «Aus dem Internet» bzw. «Per URL abonnieren» "
         + "wählen und die Adresse einfügen.</li>",
       helpDistrict: "Welcher Kreis bin ich?",
-      helpDistrictText: "Die Einteilung der Kreise finden Sie im offiziellen Entsorgungskalender bzw. der App "
+      helpDistrictText: "Geben Sie Ihre Adresse in der <a href=\"/kreis\">Kreis-Suche</a> ein. "
+        + "Die offizielle Einteilung finden Sie im Entsorgungskalender bzw. der App "
         + "«Entsorgung RJ» der <a href=\"https://www.rapperswil-jona.ch\" target=\"_blank\" "
         + "rel=\"noopener\">Stadt Rapperswil-Jona</a>.",
       disclaimer: "Inoffizielles Projekt, nicht verbunden mit der Stadt Rapperswil-Jona oder der AdaptIT GmbH. "
@@ -286,6 +293,7 @@
       lead: "Collection dates for household waste, paper, cardboard, green waste and metal as a calendar "
         + "subscription. The dates appear right in your calendar and update automatically.",
       pickDistrict: "1. Choose your district (Kreis)",
+      findDistrict: 'Don\'t know your district? <a href="/kreis">Look it up by address →</a>',
       addCalendar: '2. Add the calendar for <span class="district-name"></span>',
       categories: "Waste types",
       subscribe: "Subscribe",
@@ -308,7 +316,8 @@
         + "<li>In your calendar, choose “Add calendar” → “From internet” or “Subscribe from web” "
         + "and paste the address.</li>",
       helpDistrict: "Which district am I in?",
-      helpDistrictText: "The district map is in the official waste collection calendar and in the "
+      helpDistrictText: "Enter your address in the <a href=\"/kreis\">district lookup</a>. "
+        + "The official district map is in the waste collection calendar and in the "
         + "“Entsorgung RJ” app of the <a href=\"https://www.rapperswil-jona.ch\" target=\"_blank\" "
         + "rel=\"noopener\">City of Rapperswil-Jona</a>. Event names in the calendar are in German.",
       disclaimer: "Unofficial project, not affiliated with the City of Rapperswil-Jona or AdaptIT GmbH. "
@@ -420,6 +429,10 @@
     });
     document.querySelectorAll("[data-i18n-aria]").forEach((el) => {
       el.setAttribute("aria-label", t(el.dataset.i18nAria));
+    });
+    // Keep the language when moving to the address lookup.
+    document.querySelectorAll('a[href^="/kreis"]').forEach((el) => {
+      el.href = `/kreis?lang=${lang}`;
     });
     document.querySelectorAll(".district-label").forEach((el) => {
       el.textContent = t("district")(el.dataset.n);

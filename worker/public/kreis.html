@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcher Kreis? – Entsorgung Rapperswil-Jona</title>
+<meta name="description" content="Adresse in Rapperswil-Jona eingeben und den Entsorgungskreis (Abfallkreis) herausfinden.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>">
+<style>
+  /* Same palette and layout as index.html. */
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f5;
+    --card: #ffffff;
+    --text: #1d2420;
+    --muted: #5d6a63;
+    --border: #dfe4e0;
+    --accent: #2f7d4f;
+    --accent-text: #ffffff;
+    --accent-soft: #e5f2ea;
+    --warn: #8a5a00;
+    --warn-soft: #fbf1dc;
+    --err: #9b2c2c;
+    --err-soft: #fbe7e7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141816;
+      --card: #1d2320;
+      --text: #e8ece9;
+      --muted: #9aa8a0;
+      --border: #313a35;
+      --accent: #5cbf83;
+      --accent-text: #0e1a13;
+      --accent-soft: #23362b;
+      --warn: #e8b85c;
+      --warn-soft: #3a2e17;
+      --err: #ef8f8f;
+      --err-soft: #3d1f1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5rem; }
+  p { margin: 0 0 1rem; }
+  .lead { color: var(--muted); }
+  a { color: var(--accent); }
+
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+  .back { font-size: .9rem; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  .lang { display: flex; gap: .25rem; }
+  .lang button {
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: .2rem .55rem;
+    border: 1px solid var(--border);
+    border-radius: .4rem;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .lang button[aria-pressed="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .plz { display: flex; gap: .4rem; flex-wrap: wrap; margin: 0 0 1rem; padding: 0; list-style: none; }
+  .plz li {
+    font-size: .8rem; padding: .1rem .55rem; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--border); color: var(--muted);
+  }
+  .search { position: relative; }
+  .search input {
+    width: 100%; font: inherit; padding: .85rem 1rem; border-radius: .6rem;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); outline: none;
+  }
+  .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  ul.suggest {
+    list-style: none; margin: .35rem 0 0; padding: .25rem; position: absolute; z-index: 10;
+    left: 0; right: 0; background: var(--card); border: 1px solid var(--border);
+    border-radius: .6rem; box-shadow: 0 8px 24px rgba(0,0,0,.08); max-height: 20rem; overflow: auto;
+  }
+  ul.suggest:empty { display: none; }
+  ul.suggest li { padding: .6rem .75rem; border-radius: .4rem; cursor: pointer; }
+  ul.suggest li[aria-selected="true"], ul.suggest li:hover { background: var(--accent-soft); }
+  ul.suggest li.note { color: var(--muted); cursor: default; background: none; font-size: .9rem; }
+
+  .result {
+    margin-top: 1.25rem; padding: 1.25rem; border-radius: .8rem;
+    background: var(--card); border: 1px solid var(--border);
+  }
+  .result[hidden] { display: none; }
+  .result .addr { color: var(--muted); font-size: .95rem; }
+  .result .kreis { font-size: 2.5rem; font-weight: 700; color: var(--accent); line-height: 1.1; margin: .35rem 0 .75rem; }
+  .button {
+    display: inline-flex; align-items: center; gap: .4rem; padding: .6rem 1rem; border-radius: .5rem;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text);
+    font: inherit; font-weight: 500; text-decoration: none;
+  }
+  .button:hover { filter: brightness(1.08); }
+  .msg { margin-top: .75rem; padding: .6rem .75rem; border-radius: .5rem; font-size: .92rem; }
+  .msg.warn { background: var(--warn-soft); color: var(--warn); }
+  .msg.err { background: var(--err-soft); color: var(--err); }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <div class="topbar">
+    <a class="back" href="/" data-i18n="back">← Entsorgungskalender</a>
+    <nav class="lang" aria-label="Sprache / Language">
+      <button type="button" data-lang="de" lang="de">DE</button>
+      <button type="button" data-lang="en" lang="en">EN</button>
+    </nav>
+  </div>
+  <h1>♻️ <span data-i18n="title">Welcher Kreis?</span></h1>
+  <p class="lead" data-i18n="lead">Geben Sie Ihre Adresse in Rapperswil-Jona ein, um Ihren Entsorgungskreis zu finden.</p>
+
+  <ul class="plz" aria-label="Postleitzahlen" data-i18n-aria="plzLabel">
+    <li>8640 Rapperswil</li><li>8645 Jona</li><li>8646 Wagen</li><li>8715 Bollingen</li>
+  </ul>
+
+  <div class="search">
+    <input id="q" type="search" autocomplete="off" spellcheck="false"
+           placeholder="z.B. Neue Jonastrasse 59" data-i18n-placeholder="placeholder"
+           aria-label="Adresse" data-i18n-aria="addressLabel"
+           role="combobox" aria-expanded="false" aria-controls="suggest" aria-autocomplete="list">
+    <ul id="suggest" class="suggest" role="listbox"></ul>
+  </div>
+
+  <section id="result" class="result" hidden aria-live="polite"></section>
+
+  <footer>
+    <span data-i18n="disclaimer">Inoffizielles Projekt. Die Kreisgrenzen stammen aus dem offiziellen Plan der Stadt
+    und können um einige Meter abweichen; massgebend ist der offizielle Plan.</span>
+    <a href="https://www.rapperswil-jona.ch/abfallkreise" target="_blank" rel="noopener" data-i18n="plan">Offizieller Kreisplan</a>
+    · <span data-i18n="addressData">Adressdaten:</span> <a href="https://www.geo.admin.ch" target="_blank" rel="noopener">geo.admin.ch</a>
+    · <a href="https://github.com/acoster/entsorgung_rj" data-i18n="source">Quellcode auf GitHub</a>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const BFS_NR = "3340";                              // Rapperswil-Jona
+  const ALLOWED_PLZ = new Set(["8640", "8645", "8646", "8715"]);
+  // 8640 is shared with Hurden (Freienbach SZ), so results must also carry the BFS number.
+  const BBOX_LV95 = "2702200,1229000,2712700,1234900"; // city extent + padding (EPSG:2056)
+  const BORDER_WARN_M = 25;                            // borders are accurate to ~10–20 m
+  const KREISE_URL = "/kreise.geojson";               // built by tools/kreise/build_kreise.py
+
+  // German is the default in the HTML; these strings replace it at runtime.
+  const STRINGS = {
+    de: {
+      pageTitle: "Welcher Kreis? – Entsorgung Rapperswil-Jona",
+      description: "Adresse in Rapperswil-Jona eingeben und den Entsorgungskreis (Abfallkreis) herausfinden.",
+      back: "← Entsorgungskalender",
+      title: "Welcher Kreis?",
+      lead: "Geben Sie Ihre Adresse in Rapperswil-Jona ein, um Ihren Entsorgungskreis zu finden.",
+      plzLabel: "Postleitzahlen",
+      placeholder: "z.B. Neue Jonastrasse 59",
+      addressLabel: "Adresse",
+      disclaimer: "Inoffizielles Projekt. Die Kreisgrenzen stammen aus dem offiziellen Plan der Stadt "
+        + "und können um einige Meter abweichen; massgebend ist der offizielle Plan.",
+      plan: "Offizieller Kreisplan",
+      addressData: "Adressdaten:",
+      source: "Quellcode auf GitHub",
+      noMatch: "Keine passende Adresse in Rapperswil-Jona gefunden.",
+      offline: "Die Adresssuche ist gerade nicht erreichbar.",
+      dataError: "Die Kreisdaten konnten nicht geladen werden. Bitte später erneut versuchen.",
+      district: (n) => `Kreis ${n}`,
+      subscribe: (n) => `Kalender für Kreis ${n} abonnieren →`,
+      outside: "Diese Adresse liegt in keinem erfassten Kreis. Bitte im offiziellen Plan nachsehen.",
+      onBorder: "Die Adresse liegt an einer Kreisgrenze. Bitte im offiziellen Plan prüfen.",
+      nearBorder: (m) => `Die Adresse liegt nahe an einer Kreisgrenze (ca. ${m} m). Bitte im offiziellen Plan prüfen.`,
+    },
+    en: {
+      pageTitle: "Which district? – Rapperswil-Jona waste collection",
+      description: "Enter an address in Rapperswil-Jona to find its waste collection district (Kreis).",
+      back: "← Waste collection calendar",
+      title: "Which district am I in?",
+      lead: "Enter your address in Rapperswil-Jona to find your waste collection district (Kreis).",
+      plzLabel: "Postcodes",
+      placeholder: "e.g. Neue Jonastrasse 59",
+      addressLabel: "Address",
+      disclaimer: "Unofficial project. The district borders are taken from the city's official map "
+        + "and may be off by a few metres; the official map is authoritative.",
+      plan: "Official district map",
+      addressData: "Address data:",
+      source: "Source code on GitHub",
+      noMatch: "No matching address found in Rapperswil-Jona.",
+      offline: "Address search is currently unavailable.",
+      dataError: "Could not load the district data. Please try again later.",
+      district: (n) => `Kreis ${n}`,
+      subscribe: (n) => `Subscribe to the Kreis ${n} calendar →`,
+      outside: "This address is not in any known district. Please check the official map.",
+      onBorder: "This address is on a district border. Please check the official map.",
+      nearBorder: (m) => `This address is close to a district border (about ${m} m). Please check the official map.`,
+    },
+  };
+  let lang = "de";
+  const t = (key, ...args) => {
+    const v = STRINGS[lang][key];
+    return typeof v === "function" ? v(...args) : v;
+  };
+
+  // ---- Geometry (Polygon / MultiPolygon with holes, [lon, lat]) -----------
+  const polygonsOf = (g) =>
+    g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
+  function inRing([x, y], ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  const inGeometry = (pt, g) =>
+    polygonsOf(g).some((rings) => inRing(pt, rings[0]) && !rings.slice(1).some((h) => inRing(pt, h)));
+  // Distance in metres to the nearest edge (local equirectangular approximation).
+  function distToEdges(pt, g) {
+    const rad = Math.PI / 180, R = 6371008.8;
+    const kx = Math.cos(pt[1] * rad) * rad * R, ky = rad * R;
+    let best = Infinity;
+    for (const rings of polygonsOf(g)) for (const ring of rings) {
+      for (let i = 1; i < ring.length; i++) {
+        const ax = (ring[i - 1][0] - pt[0]) * kx, ay = (ring[i - 1][1] - pt[1]) * ky;
+        const dx = (ring[i][0] - pt[0]) * kx - ax, dy = (ring[i][1] - pt[1]) * ky - ay;
+        const len2 = dx * dx + dy * dy;
+        const s = len2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+        best = Math.min(best, Math.hypot(ax + s * dx, ay + s * dy));
+      }
+    }
+    return best;
+  }
+
+  let kreise = null;
+  const kreiseReady = fetch(KREISE_URL)
+    .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+    .then((fc) => { kreise = fc; })
+    .catch(() => {});
+
+  // ---- Address search (geo.admin.ch SearchServer) --------------------------
+  const isInCity = (a) => {
+    const tokens = (a.detail || "").split(" ");
+    return tokens.includes(BFS_NR) && tokens.some((tok) => ALLOWED_PLZ.has(tok));
+  };
+  let ctrl = null;
+  async function searchAddresses(text) {
+    ctrl?.abort();
+    ctrl = new AbortController();
+    const url = new URL("https://api3.geo.admin.ch/rest/services/api/SearchServer");
+    url.search = new URLSearchParams({
+      searchText: text, type: "locations", origins: "address",
+      sr: "2056", bbox: BBOX_LV95, limit: "20",  // bbox only works with sr=2056; lat/lon stay WGS84
+    });
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const seen = new Set();
+    return ((await res.json()).results || [])
+      .map((r) => r.attrs)
+      .filter(isInCity)
+      .map((a) => ({ label: a.label.replace(/<[^>]*>/g, ""), lon: a.lon, lat: a.lat }))
+      .filter((a) => !seen.has(a.label) && seen.add(a.label));
+  }
+
+  // ---- UI -----------------------------------------------------------------
+  const q = document.getElementById("q");
+  const list = document.getElementById("suggest");
+  const out = document.getElementById("result");
+  let items = [], active = -1, timer = null, shown = null;
+
+  function renderList(note) {
+    list.replaceChildren();
+    if (note) {
+      const li = document.createElement("li");
+      li.className = "note";
+      li.textContent = note;
+      list.append(li);
+    }
+    items.forEach((it, i) => {
+      const li = document.createElement("li");
+      li.role = "option";
+      li.textContent = it.label;
+      li.setAttribute("aria-selected", String(i === active));
+      li.addEventListener("mousedown", (e) => { e.preventDefault(); choose(i); });
+      list.append(li);
+    });
+    q.setAttribute("aria-expanded", String(list.children.length > 0));
+  }
+  function closeList() { items = []; active = -1; renderList(); }
+
+  q.addEventListener("input", () => {
+    clearTimeout(timer);
+    const text = q.value.trim();
+    if (text.length < 3) { closeList(); return; }
+    timer = setTimeout(async () => {
+      try {
+        items = await searchAddresses(text);
+        active = items.length ? 0 : -1;
+        renderList(items.length ? null : t("noMatch"));
+      } catch (e) {
+        if (e.name !== "AbortError") { items = []; renderList(t("offline")); }
+      }
+    }, 250);
+  });
+  q.addEventListener("keydown", (e) => {
+    if (!items.length) return;
+    if (e.key === "ArrowDown") { active = (active + 1) % items.length; renderList(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { active = (active - 1 + items.length) % items.length; renderList(); e.preventDefault(); }
+    else if (e.key === "Enter" && active >= 0) { choose(active); e.preventDefault(); }
+    else if (e.key === "Escape") closeList();
+  });
+  q.addEventListener("blur", () => setTimeout(closeList, 100));
+
+  async function choose(i) {
+    const it = items[i];
+    q.value = it.label;
+    closeList();
+    await kreiseReady;
+    show(it);
+  }
+
+  function message(kind, text) {
+    const m = document.createElement("div");
+    m.className = `msg ${kind}`;
+    m.textContent = text;
+    out.append(m);
+  }
+
+  function show(it) {
+    shown = it;
+    out.replaceChildren();
+    out.hidden = false;
+    const addr = document.createElement("div");
+    addr.className = "addr";
+    addr.textContent = it.label;
+    out.append(addr);
+    if (!kreise) { message("err", t("dataError")); return; }
+
+    const pt = [it.lon, it.lat];
+    const hits = kreise.features.filter((f) => inGeometry(pt, f.geometry));
+    const nums = [...new Set(hits.map((f) => f.properties.kreis))].sort((a, b) => a - b);
+    if (!nums.length) { message("err", t("outside")); return; }
+
+    const big = document.createElement("div");
+    big.className = "kreis";
+    big.textContent = nums.map((n) => t("district", n)).join(" / ");
+    out.append(big);
+
+    // Hand over to the calendar page; index.html selects the district from #kreis-N.
+    for (const n of nums) {
+      const a = document.createElement("a");
+      a.className = "button";
+      a.href = `/?lang=${lang}#kreis-${n}`;
+      a.textContent = t("subscribe", n);
+      out.append(a, " ");
+    }
+
+    const nearest = Math.min(...hits.map((f) => distToEdges(pt, f.geometry)));
+    if (nums.length > 1) message("warn", t("onBorder"));
+    else if (nearest < BORDER_WARN_M) message("warn", t("nearBorder", Math.round(nearest)));
+  }
+
+  // ---- Language: same mechanism and localStorage key as index.html --------
+  function setLang(next, remember) {
+    lang = STRINGS[next] ? next : "de";
+    document.documentElement.lang = lang;
+    document.title = t("pageTitle");
+    document.querySelector('meta[name="description"]').content = t("description");
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+    document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
+    document.querySelectorAll(".lang button").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+    });
+    document.querySelector(".back").href = `/?lang=${lang}`;  // keep the language on the calendar page
+    if (shown) show(shown);
+    if (remember) { try { localStorage.setItem("lang", lang); } catch {} }
+  }
+  document.querySelectorAll(".lang button").forEach((b) => {
+    b.addEventListener("click", () => setLang(b.dataset.lang, true));
+  });
+
+  // ?lang=en|de, then the saved choice, then the browser's preference.
+  let initialLang = new URLSearchParams(location.search).get("lang");
+  if (!STRINGS[initialLang]) { try { initialLang = localStorage.getItem("lang"); } catch {} }
+  if (!STRINGS[initialLang]) {
+    const prefs = navigator.languages && navigator.languages.length
+      ? navigator.languages : [navigator.language || "de"];
+    initialLang = prefs.map((l) => l.slice(0, 2).toLowerCase()).find((l) => STRINGS[l]) || "en";
+  }
+  setLang(initialLang, false);
+})();
+</script>
+</body>
+</html>

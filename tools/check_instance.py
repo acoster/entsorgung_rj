@@ -7,6 +7,8 @@ non-zero if anything looks wrong. Run by `.github/workflows/monitor.yml`:
 
 Checks:
 * `/` serves the landing page.
+* `/kreis` serves the address lookup and `/kreise.geojson` has a polygon for every
+  district.
 * Every district feed (`/1.ics` … `/8.ics`) returns a valid calendar served from
   a fresh cache (`X-Calendar-Cache: ok`, so upstream is reachable), with at
   least one collection in the next `--horizon-days` days.
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import os
 import re
 import sys
@@ -159,6 +162,24 @@ def check_feed(
     return events
 
 
+def check_kreise(report: Report, resp: Fetched, districts: int) -> None:
+    """`/kreise.geojson` must be a FeatureCollection with a polygon for every district."""
+    if not report.check(resp.status == 200, "/kreise.geojson status", f"HTTP {resp.status}"):
+        return
+    try:
+        features = json.loads(resp.body)["features"]
+        found = {
+            f["properties"]["kreis"]
+            for f in features
+            if f["geometry"]["type"] in ("Polygon", "MultiPolygon")
+        }
+    except (ValueError, KeyError, TypeError) as exc:
+        report.check(False, "/kreise.geojson is valid", str(exc))
+        return
+    missing = sorted(set(range(1, districts + 1)) - found)
+    report.check(not missing, "/kreise.geojson covers every district", f"missing {missing}")
+
+
 def run(
     base_url: str,
     *,
@@ -178,6 +199,14 @@ def run(
         "landing page",
         f"HTTP {page.status}",
     )
+
+    lookup = get(f"{base}/kreis")
+    report.check(
+        lookup.status == 200 and "kreise.geojson" in lookup.body,
+        "district lookup page",
+        f"HTTP {lookup.status}",
+    )
+    check_kreise(report, get(f"{base}/kreise.geojson"), districts)
 
     for district in range(1, districts + 1):
         check_feed(

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  The landing page in each language. "/" picks the language from the browser
-  (x-default); ?lang=de and ?lang=en force German and English.
+  The landing page and the district lookup (/kreis, served from kreis.html) in each
+  language. Without ?lang= the page picks the language from the browser (x-default);
+  ?lang=de and ?lang=en force German and English.
   The .ics feeds are calendar data, not pages, so they are not listed.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -23,5 +24,23 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://entsorgung-rappi.coster.li/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://entsorgung-rappi.coster.li/?lang=de"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://entsorgung-rappi.coster.li/?lang=en"/>
+  </url>
+  <url>
+    <loc>https://entsorgung-rappi.coster.li/kreis</loc>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://entsorgung-rappi.coster.li/kreis"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://entsorgung-rappi.coster.li/kreis?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://entsorgung-rappi.coster.li/kreis?lang=en"/>
+  </url>
+  <url>
+    <loc>https://entsorgung-rappi.coster.li/kreis?lang=de</loc>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://entsorgung-rappi.coster.li/kreis"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://entsorgung-rappi.coster.li/kreis?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://entsorgung-rappi.coster.li/kreis?lang=en"/>
+  </url>
+  <url>
+    <loc>https://entsorgung-rappi.coster.li/kreis?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://entsorgung-rappi.coster.li/kreis"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://entsorgung-rappi.coster.li/kreis?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://entsorgung-rappi.coster.li/kreis?lang=en"/>
   </url>
 </urlset>

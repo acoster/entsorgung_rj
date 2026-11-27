@@ -4,6 +4,7 @@ Serves the Rapperswil-Jona waste collection calendar for each district as iCalen
 
 ```
 GET /                    # landing page (German/English): pick a district, subscribe / download / copy URL
+GET /kreis               # address lookup (German/English): which district is my address in?
 GET /1.ics … /8.ics      # Kreis 1 … Kreis 8
 GET /2.ics?categories=2,5            # only Kehricht and Papier
 GET /2.ics?categories=kehricht,papier  # same, by name
@@ -29,6 +30,26 @@ change them if you deploy elsewhere. It is delivered from the edge without runni
 any path that isn't a file (e.g. `/2.ics`) falls through to the Worker.
 
 Subscribe to e.g. `https://entsorgung-rj.<your-subdomain>.workers.dev/2.ics` in any calendar app.
+
+## Address lookup (`/kreis`)
+
+[`public/kreis.html`](./public/kreis.html) is a second static page. Workers static assets
+serve it at `/kreis`; `/kreis.html` redirects there. The landing page links to it, and its
+result links back to `/#kreis-<n>`, which preselects that district. Both pages share the
+language switch and the saved `lang` choice, and pass `?lang=` along on these links.
+
+Everything runs in the browser:
+
+1. Address autocomplete comes from the geo.admin.ch SearchServer (free, no key, CORS).
+   Results are limited to the city's bounding box and kept only if they carry municipality
+   number 3340 and postcode 8640, 8645, 8646 or 8715. 8640 also covers Hurden (SZ).
+2. The address is looked up in [`public/kreise.geojson`](./public/kreise.geojson), the
+   district polygons. A point within 25 m of a border, or in two districts, gets a warning.
+
+The city publishes the districts only as a PDF map, so the polygons are generated from it
+with [`tools/kreise/build_kreise.py`](../tools/kreise/). They are accurate to roughly
+10–20 m. See [`tools/kreise/README.md`](../tools/kreise/README.md) to regenerate them for a
+new map.
 
 ## Caching
 
@@ -107,6 +128,7 @@ curl "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/analytics_engine
 hours (and on demand from the Actions tab). It fails, and GitHub emails you, when:
 
 - the landing page or any district feed doesn't load or isn't a valid calendar;
+- the address lookup page doesn't load, or `/kreise.geojson` is invalid or misses a district;
 - a feed is served from a stale cache (`X-Calendar-Cache: stale`, i.e. the city's backend
   has been failing for longer than the 4-hour refresh);
 - a district has no collection in the next 21 days (e.g. the backend's data or format changed);

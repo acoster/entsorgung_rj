@@ -6,6 +6,8 @@ publishes each district's calendar as a subscribable `.ics` feed.
 
 **Just want the calendar?** Go to **<https://entsorgung-rappi.coster.li>**, pick your
 district (Kreis) and subscribe. No installation needed.
+Not sure which district you're in? Look up your address at
+**<https://entsorgung-rappi.coster.li/kreis>**.
 
 - **Standard library only.** No runtime dependencies, Python 3.10+.
 - **CLI:** list districts and show or export a district's collection dates.
