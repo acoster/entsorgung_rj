@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import unittest
 
 from entsorgung_rj.ical import format_ics
@@ -37,6 +38,16 @@ def calendar(items=ITEMS, *, cache="ok", filename="entsorgung-kreis-2.ics") -> F
     )
 
 
+def kreise(districts=range(1, 9)) -> Fetched:
+    square = [[[8.8, 47.2], [8.9, 47.2], [8.9, 47.3], [8.8, 47.2]]]
+    features = [
+        {"type": "Feature", "properties": {"kreis": n},
+         "geometry": {"type": "Polygon", "coordinates": square}}
+        for n in districts
+    ]
+    return Fetched(200, {}, json.dumps({"type": "FeatureCollection", "features": features}))
+
+
 class FakeSite:
     """Healthy instance by default; override paths to inject failures."""
 
@@ -51,6 +62,10 @@ class FakeSite:
             return self.overrides[path]
         if path == "/":
             return Fetched(200, {}, "<title>Entsorgungskalender</title>")
+        if path == "/kreis":
+            return Fetched(200, {}, 'fetch("/kreise.geojson")')
+        if path == "/kreise.geojson":
+            return kreise()
         if path == "/2.ics?categories=papier":
             return calendar(
                 [i for i in ITEMS if i["category_id"] == 5],
@@ -79,6 +94,19 @@ class TestCheckInstance(unittest.TestCase):
         report = run(BASE, today=TODAY, get=site)
         self.assertEqual(report.failed, [])
         self.assertIn("/8.ics", site.requested)
+        self.assertIn("/kreise.geojson", site.requested)
+
+    def test_district_lookup_problems(self) -> None:
+        failed = "\n".join(run(BASE, today=TODAY, get=FakeSite(**{
+            "/kreis": Fetched(404, {}, "Not found"),
+            "/kreise.geojson": kreise(range(1, 7)),
+        })).failed)
+        self.assertIn("district lookup page: HTTP 404", failed)
+        self.assertIn("/kreise.geojson covers every district: missing [7, 8]", failed)
+        failed = "\n".join(run(BASE, today=TODAY, get=FakeSite(**{
+            "/kreise.geojson": Fetched(200, {}, "<html>"),
+        })).failed)
+        self.assertIn("/kreise.geojson is valid", failed)
 
     def test_reports_each_kind_of_problem(self) -> None:
         site = FakeSite(
